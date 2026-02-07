@@ -1,17 +1,14 @@
 [package]
-name = "app"
+name = "blaze"
 version = "0.1.0"
 authors = ["Yassen717 <EngYassenIbrahim@gmail.com>"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "A blazingly fast terminal emulator built with Rust"
 
 [dependencies]
-dioxus = { version = "0.7.1", features = ["router", "fullstack"] }
+dioxus = { version = "0.7.1", features = ["router"] }
 
 [features]
 default = ["desktop"]
 web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
-mobile = ["dioxus/mobile"]
-server = ["dioxus/server"]
