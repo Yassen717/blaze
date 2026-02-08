@@ -1,9 +1,21 @@
 use dioxus::prelude::*;
 
+use std::process::Stdio;
+
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::process::Command;
+use tokio::sync::mpsc;
+
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 use crate::state::{LineType, TerminalLine};
 
 #[cfg(feature = "desktop")]
 const MAX_LINES: usize = 5000;
+
+#[cfg(feature = "desktop")]
+const ALLOWED_EXTERNAL: [&str; 4] = ["ls", "dir", "echo", "vim"];
 
 #[cfg(feature = "desktop")]
 #[component]
@@ -61,8 +73,9 @@ pub fn DesktopTerminal() -> Element {
                             "",
                             "Any other input is executed as a system command.",
                         ];
+                        let mut v = lines.write();
                         for h in help {
-                            lines.write().push(TerminalLine {
+                            v.push(TerminalLine {
                                 content: h.to_string(),
                                 line_type: LineType::System,
                             });
@@ -111,48 +124,95 @@ pub fn DesktopTerminal() -> Element {
                     _ => {}
                 }
 
+                if !ALLOWED_EXTERNAL.contains(&first.as_str()) {
+                    lines.write().push(TerminalLine {
+                        content: format!(
+                            "Command '{}' is not allowed. Type 'help' for a list of available commands.",
+                            first
+                        ),
+                        line_type: LineType::Error,
+                    });
+                    return;
+                }
+
                 spawn(async move {
+                    let mut lines = lines;
                     #[cfg(target_os = "windows")]
-                    let result = std::process::Command::new("cmd")
+                    let child = Command::new("cmd")
                         .args(["/C", &cmd])
                         .current_dir(&cwd)
-                        .output();
+                        .stdout(Stdio::piped())
+                        .stderr(Stdio::piped())
+                        .creation_flags(0x08000000)
+                        .spawn();
 
                     #[cfg(not(target_os = "windows"))]
-                    let result = std::process::Command::new("sh")
+                    let child = Command::new("sh")
                         .args(["-c", &cmd])
                         .current_dir(&cwd)
-                        .output();
+                        .stdout(Stdio::piped())
+                        .stderr(Stdio::piped())
+                        .spawn();
 
-                    match result {
-                        Ok(output) => {
-                            let stdout = String::from_utf8_lossy(&output.stdout);
-                            let stderr = String::from_utf8_lossy(&output.stderr);
-                            for line in stdout.lines() {
-                                lines.write().push(TerminalLine {
-                                    content: line.to_string(),
-                                    line_type: LineType::Output,
+                    let push_line = |lines: &mut Signal<Vec<TerminalLine>>, line: TerminalLine| {
+                        let mut v = lines.write();
+                        v.push(line);
+                        if v.len() > MAX_LINES {
+                            let excess = v.len() - MAX_LINES;
+                            v.drain(0..excess);
+                        }
+                    };
+
+                    match child {
+                        Ok(mut child) => {
+                            let stdout = child.stdout.take();
+                            let stderr = child.stderr.take();
+
+                            let (tx, mut rx) = mpsc::unbounded_channel::<TerminalLine>();
+
+                            if let Some(out) = stdout {
+                                let tx_out = tx.clone();
+                                spawn(async move {
+                                    let mut reader = BufReader::new(out).lines();
+                                    while let Ok(Some(line)) = reader.next_line().await {
+                                        let _ = tx_out.send(TerminalLine {
+                                            content: line,
+                                            line_type: LineType::Output,
+                                        });
+                                    }
                                 });
                             }
-                            for line in stderr.lines() {
-                                lines.write().push(TerminalLine {
-                                    content: line.to_string(),
-                                    line_type: LineType::Error,
+
+                            if let Some(err) = stderr {
+                                let tx_err = tx.clone();
+                                spawn(async move {
+                                    let mut reader = BufReader::new(err).lines();
+                                    while let Ok(Some(line)) = reader.next_line().await {
+                                        let _ = tx_err.send(TerminalLine {
+                                            content: line,
+                                            line_type: LineType::Error,
+                                        });
+                                    }
                                 });
                             }
+
+                            drop(tx);
+
+                            while let Some(line) = rx.recv().await {
+                                push_line(&mut lines, line);
+                            }
+
+                            let _ = child.wait().await;
                         }
                         Err(e) => {
-                            lines.write().push(TerminalLine {
-                                content: format!("Error: {}", e),
-                                line_type: LineType::Error,
-                            });
+                            push_line(
+                                &mut lines,
+                                TerminalLine {
+                                    content: format!("Error: {}", e),
+                                    line_type: LineType::Error,
+                                },
+                            );
                         }
-                    }
-
-                    let mut v = lines.write();
-                    if v.len() > MAX_LINES {
-                        let excess = v.len() - MAX_LINES;
-                        v.drain(0..excess);
                     }
                 });
             }
