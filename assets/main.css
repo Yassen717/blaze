@@ -12,7 +12,7 @@
 
 html, body {
     height: 100%;
-    background: #0a0e14;
+    background: radial-gradient(1200px 800px at 20% 10%, #0c1214 0%, #0a0e12 40%, #07090b 100%);
     color: #e6edf3;
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -28,10 +28,10 @@ a {
    ======================================================== */
 
 .terminal-container {
-    background: #0d1117;
+    background: #050607;
     border-radius: 12px;
     overflow: hidden;
-    border: 1px solid #30363d;
+    border: 1px solid #1b2326;
     font-family: 'Cascadia Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
     display: flex;
     flex-direction: column;
@@ -39,10 +39,15 @@ a {
 
 /* Desktop: fill the entire viewport */
 .terminal-fullscreen {
-    height: 100vh;
-    width: 100vw;
-    border-radius: 0;
-    border: none;
+    height: calc(100vh - 40px);
+    width: calc(100vw - 40px);
+    max-width: 1200px;
+    margin: 20px auto;
+    border-radius: 14px;
+    border: 1px solid #11181b;
+    box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.55),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
 /* Web demo: constrained size */
@@ -56,12 +61,12 @@ a {
 /* ---- header bar ---- */
 
 .terminal-header {
-    background: #161b22;
-    padding: 11px 16px;
+    background: #0a0f11;
+    padding: 10px 14px;
     display: flex;
     align-items: center;
     gap: 8px;
-    border-bottom: 1px solid #30363d;
+    border-bottom: 1px solid #10181b;
     user-select: none;
     -webkit-app-region: drag;
 }
@@ -81,20 +86,61 @@ a {
 .dot-green  { background: #27c93f; }
 
 .terminal-title {
-    color: #8b949e;
-    font-size: 13px;
+    color: #9aa4a9;
+    font-size: 12.5px;
     margin-left: 8px;
     font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+/* ---- desktop-only header tweaks ---- */
+
+.terminal-fullscreen .terminal-header {
+    background: transparent;
+    border-bottom: none;
+    padding: 8px 10px;
+}
+
+.terminal-fullscreen .terminal-title {
+    color: #7f8a90;
+    margin-left: 0;
+}
+
+.terminal-fullscreen .terminal-dots {
+    margin-left: auto;
+    gap: 6px;
+}
+
+.terminal-fullscreen .dot {
+    width: 36px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid #141a1d;
+    background: #0b0f11;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.terminal-fullscreen .dot-red {
+    background: #3a0e10;
+    border-color: #4a1215;
+}
+
+.terminal-fullscreen .dot-yellow {
+    background: #1a1d20;
+}
+
+.terminal-fullscreen .dot-green {
+    background: #1a1d20;
 }
 
 /* ---- body / output ---- */
 
 .terminal-body {
     flex: 1;
-    padding: 14px 18px;
+    padding: 16px 18px 18px;
     overflow-y: auto;
     font-size: 14px;
-    line-height: 1.65;
+    line-height: 1.7;
     cursor: text;
 }
 
@@ -114,20 +160,20 @@ a {
 
 /* ---- line types ---- */
 
-.line-command {
-    color: #39d353;
+.terminal-fullscreen .line-command {
+    color: #5dff9a;
     font-weight: 600;
 }
-.line-output {
-    color: #e6edf3;
+.terminal-fullscreen .line-output {
+    color: #40ff85;
     white-space: pre-wrap;
 }
-.line-error {
-    color: #f85149;
+.terminal-fullscreen .line-error {
+    color: #ff4d4f;
     white-space: pre-wrap;
 }
-.line-system {
-    color: #58a6ff;
+.terminal-fullscreen .line-system {
+    color: #86ffc1;
 }
 
 /* ---- input line ---- */
@@ -138,23 +184,23 @@ a {
     margin-top: 2px;
 }
 
-.prompt {
-    color: #39d353;
+.terminal-fullscreen .prompt {
+    color: #5dff9a;
     font-weight: 600;
     white-space: nowrap;
     margin-right: 2px;
 }
 
-.terminal-input {
+.terminal-fullscreen .terminal-input {
     flex: 1;
     background: transparent;
     border: none;
-    color: #e6edf3;
+    color: #40ff85;
     font-family: inherit;
     font-size: 14px;
     outline: none;
-    caret-color: #ff6b35;
-    line-height: 1.65;
+    caret-color: #5dff9a;
+    line-height: 1.7;
 }
 
 /* ========================================================
