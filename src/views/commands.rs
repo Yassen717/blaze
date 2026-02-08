@@ -8,7 +8,7 @@ pub fn CommandsPage() -> Element {
         section { class: "page-section",
             h1 { class: "page-title", "Command Reference" }
             p { class: "page-intro",
-                "Blaze includes built-in commands. Everything else is forwarded to your system shell."
+                "Blaze includes built-in commands and a small set of allowed system commands."
             }
 
             h2 { "Built-in Commands" }
@@ -19,14 +19,12 @@ pub fn CommandsPage() -> Element {
                 CmdCard { cmd: "exit", desc: "Quit Blaze Terminal", example: "exit" }
             }
 
-            h2 { "System Commands (examples)" }
+            h2 { "Allowed System Commands" }
             div { class: "commands-grid",
                 CmdCard { cmd: "dir", desc: "List files and folders", example: "dir" }
+                CmdCard { cmd: "ls", desc: "List files and folders", example: "ls" }
                 CmdCard { cmd: "echo <text>", desc: "Print text to the terminal", example: "echo Hello!" }
-                CmdCard { cmd: "mkdir <name>", desc: "Create a new directory", example: "mkdir my-project" }
-                CmdCard { cmd: "type <file>", desc: "Display file contents", example: "type readme.txt" }
-                CmdCard { cmd: "ping <host>", desc: "Test network connectivity", example: "ping google.com" }
-                CmdCard { cmd: "ipconfig", desc: "Show network configuration", example: "ipconfig" }
+                CmdCard { cmd: "vim", desc: "Open the Vim editor", example: "vim readme.txt" }
             }
         }
     }

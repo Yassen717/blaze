@@ -71,7 +71,7 @@ pub fn DesktopTerminal() -> Element {
                             "  cd <dir>        Change directory",
                             "  exit            Exit the terminal",
                             "",
-                            "Any other input is executed as a system command.",
+                            "Allowed system commands: ls, dir, echo, vim.",
                         ];
                         let mut v = lines.write();
                         for h in help {
@@ -339,14 +339,16 @@ pub fn WebTerminalDemo() -> Element {
             }
             "help" => {
                 for line in [
-                    "⚡ Blaze Terminal — Commands:",
+                    "⚡ Blaze Terminal — Demo Commands:",
                     "",
                     "  help          Show this message",
                     "  clear / cls   Clear the screen",
-                    "  cd <dir>      Change directory",
-                    "  exit          Exit terminal",
-                    "",
-                    "Try: dir, echo, whoami, date, ipconfig, ping",
+                    "  dir / ls      List files and folders",
+                    "  echo <text>   Print text to the terminal",
+                    "  whoami        Show current user",
+                    "  date          Show the date",
+                    "  ipconfig      Show network configuration",
+                    "  ping <host>   Test network connectivity",
                 ] {
                     lines.write().push(TerminalLine { content: line.into(), line_type: LineType::System });
                 }
