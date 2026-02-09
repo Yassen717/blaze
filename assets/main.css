@@ -37,17 +37,15 @@ a {
     flex-direction: column;
 }
 
-/* Desktop: fill the entire viewport */
+/* Desktop: fill the entire viewport — single window */
 .terminal-fullscreen {
-    height: calc(100vh - 40px);
-    width: calc(100vw - 40px);
-    max-width: 1200px;
-    margin: 20px auto;
-    border-radius: 14px;
-    border: 1px solid #11181b;
-    box-shadow:
-        0 30px 80px rgba(0, 0, 0, 0.55),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    height: 100vh;
+    width: 100vw;
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
 }
 
 /* Web demo: constrained size */
@@ -96,41 +94,69 @@ a {
 /* ---- desktop-only header tweaks ---- */
 
 .terminal-fullscreen .terminal-header {
-    background: transparent;
-    border-bottom: none;
-    padding: 8px 10px;
+    background: #080b0d;
+    border-bottom: 1px solid #141a1e;
+    padding: 0 0 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 38px;
+    min-height: 38px;
+    -webkit-app-region: drag;
+    user-select: none;
 }
 
 .terminal-fullscreen .terminal-title {
-    color: #7f8a90;
+    color: #6b7680;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
     margin-left: 0;
+    pointer-events: none;
 }
 
-.terminal-fullscreen .terminal-dots {
-    margin-left: auto;
-    gap: 6px;
+/* ---- window control buttons ---- */
+
+.terminal-controls {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    -webkit-app-region: no-drag;
 }
 
-.terminal-fullscreen .dot {
-    width: 36px;
-    height: 20px;
-    border-radius: 4px;
-    border: 1px solid #141a1d;
-    background: #0b0f11;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+.win-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: #6b7680;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    font-family: 'Segoe MDL2 Assets', 'Cascadia Mono', monospace;
+    line-height: 1;
+    padding: 0;
 }
 
-.terminal-fullscreen .dot-red {
-    background: #3a0e10;
-    border-color: #4a1215;
+.win-btn:hover {
+    background: #1a2028;
+    color: #c8d0d8;
 }
 
-.terminal-fullscreen .dot-yellow {
-    background: #1a1d20;
+.win-btn-close:hover {
+    background: #c42b1c;
+    color: #fff;
 }
 
-.terminal-fullscreen .dot-green {
-    background: #1a1d20;
+.win-btn-minimize:hover {
+    background: #1a2028;
+}
+
+.win-btn-maximize:hover {
+    background: #1a2028;
 }
 
 /* ---- body / output ---- */
