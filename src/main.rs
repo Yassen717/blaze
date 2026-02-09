@@ -19,6 +19,27 @@ const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 // ======================== Main ========================
 
+#[cfg(feature = "desktop")]
+fn main() {
+    use dioxus::desktop::{Config, WindowBuilder, LogicalSize};
+
+    dioxus::LaunchBuilder::desktop()
+        .with_cfg(
+            Config::new()
+                .with_window(
+                    WindowBuilder::new()
+                        .with_title("Blaze Terminal")
+                        .with_decorations(false)
+                        .with_inner_size(LogicalSize::new(1100.0, 700.0))
+                        .with_min_inner_size(LogicalSize::new(600.0, 400.0))
+                )
+                .with_background_color((5, 6, 7, 255))
+                .with_disable_context_menu(true)
+        )
+        .launch(App);
+}
+
+#[cfg(not(feature = "desktop"))]
 fn main() {
     dioxus::launch(App);
 }
