@@ -259,12 +259,30 @@ pub fn DesktopTerminal() -> Element {
     rsx! {
         div { class: "terminal-container terminal-fullscreen",
             div { class: "terminal-header",
-                div { class: "terminal-dots",
-                    span { class: "dot dot-red" }
-                    span { class: "dot dot-yellow" }
-                    span { class: "dot dot-green" }
-                }
                 span { class: "terminal-title", "⚡ Blaze Terminal" }
+                div { class: "terminal-controls",
+                    button {
+                        class: "win-btn win-btn-minimize",
+                        onclick: move |_| {
+                            dioxus::desktop::window().set_minimized(true);
+                        },
+                        "−"
+                    }
+                    button {
+                        class: "win-btn win-btn-maximize",
+                        onclick: move |_| {
+                            dioxus::desktop::window().toggle_maximized();
+                        },
+                        "□"
+                    }
+                    button {
+                        class: "win-btn win-btn-close",
+                        onclick: move |_| {
+                            dioxus::desktop::window().close();
+                        },
+                        "✕"
+                    }
+                }
             }
             div {
                 id: "terminal-output",
