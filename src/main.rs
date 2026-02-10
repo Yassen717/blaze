@@ -16,6 +16,7 @@ use views::Route;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
+const WEB_FAVICON: Asset = asset!("/assets/blaze-favicon.png");
 
 // ======================== Main ========================
 
@@ -70,6 +71,7 @@ fn AppInner() -> Element {
 #[component]
 fn AppInner() -> Element {
     rsx! {
+        document::Link { rel: "icon", type: "image/png", href: WEB_FAVICON }
         Router::<Route> {}
     }
 }
