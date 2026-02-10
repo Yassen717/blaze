@@ -15,7 +15,7 @@ use crate::state::{LineType, TerminalLine};
 const MAX_LINES: usize = 5000;
 
 #[cfg(feature = "desktop")]
-const ALLOWED_EXTERNAL: [&str; 4] = ["ls", "dir", "echo", "vim"];
+const ALLOWED_EXTERNAL: [&str; 8] = ["ls", "dir", "echo", "vim", "mkdir", "rm", "del", "mv"];
 
 #[cfg(feature = "desktop")]
 #[component]
@@ -71,7 +71,7 @@ pub fn DesktopTerminal() -> Element {
                             "  cd <dir>        Change directory",
                             "  exit            Exit the terminal",
                             "",
-                            "Allowed system commands: ls, dir, echo, vim.",
+                            "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv.",
                         ];
                         let mut v = lines.write();
                         for h in help {
@@ -135,11 +135,45 @@ pub fn DesktopTerminal() -> Element {
                     return;
                 }
 
+                #[cfg(target_os = "windows")]
+                let exec_cmd = {
+                    let rest = cmd.split_whitespace().skip(1).collect::<Vec<&str>>().join(" ");
+                    let quote = |s: &str| {
+                        if s.contains(' ') { format!("\"{}\"", s) } else { s.to_string() }
+                    };
+                    match first.as_str() {
+                        "ls" => {
+                            if rest.is_empty() { "dir".to_string() } else { format!("dir {}", rest) }
+                        }
+                        "rm" | "del" => {
+                            if rest.is_empty() {
+                                "del".to_string()
+                            } else {
+                                let target = std::path::Path::new(&rest);
+                                let full = if target.is_absolute() {
+                                    target.to_path_buf()
+                                } else {
+                                    std::path::Path::new(&cwd).join(target)
+                                };
+                                if full.is_dir() {
+                                    format!("rmdir /S /Q {}", quote(full.to_string_lossy().as_ref()))
+                                } else {
+                                    format!("del {}", quote(rest.as_str()))
+                                }
+                            }
+                        }
+                        _ => cmd.clone(),
+                    }
+                };
+
+                #[cfg(not(target_os = "windows"))]
+                let exec_cmd = cmd.clone();
+
                 spawn(async move {
                     let mut lines = lines;
                     #[cfg(target_os = "windows")]
                     let child = Command::new("cmd")
-                        .args(["/C", &cmd])
+                        .args(["/C", &exec_cmd])
                         .current_dir(&cwd)
                         .stdout(Stdio::piped())
                         .stderr(Stdio::piped())
@@ -148,7 +182,7 @@ pub fn DesktopTerminal() -> Element {
 
                     #[cfg(not(target_os = "windows"))]
                     let child = Command::new("sh")
-                        .args(["-c", &cmd])
+                        .args(["-c", &exec_cmd])
                         .current_dir(&cwd)
                         .stdout(Stdio::piped())
                         .stderr(Stdio::piped())
@@ -367,6 +401,9 @@ pub fn WebTerminalDemo() -> Element {
                     "  date          Show the date",
                     "  ipconfig      Show network configuration",
                     "  ping <host>   Test network connectivity",
+                    "  mkdir <dir>   Create a directory",
+                    "  rm / del <p>  Delete a file or directory",
+                    "  mv <a> <b>    Move or rename",
                 ] {
                     lines.write().push(TerminalLine { content: line.into(), line_type: LineType::System });
                 }
@@ -418,6 +455,27 @@ pub fn WebTerminalDemo() -> Element {
                     ] {
                         lines.write().push(TerminalLine { content: line.into(), line_type: LineType::Output });
                     }
+                }
+            }
+            "mkdir" => {
+                if cmd_lower.split_whitespace().count() < 2 {
+                    lines.write().push(TerminalLine { content: "Usage: mkdir <dir>".into(), line_type: LineType::Error });
+                } else {
+                    lines.write().push(TerminalLine { content: "Directory created (simulated)".into(), line_type: LineType::Output });
+                }
+            }
+            "rm" | "del" => {
+                if cmd_lower.split_whitespace().count() < 2 {
+                    lines.write().push(TerminalLine { content: "Usage: rm <path>".into(), line_type: LineType::Error });
+                } else {
+                    lines.write().push(TerminalLine { content: "Deleted (simulated)".into(), line_type: LineType::Output });
+                }
+            }
+            "mv" => {
+                if cmd_lower.split_whitespace().count() < 3 {
+                    lines.write().push(TerminalLine { content: "Usage: mv <source> <dest>".into(), line_type: LineType::Error });
+                } else {
+                    lines.write().push(TerminalLine { content: "Moved (simulated)".into(), line_type: LineType::Output });
                 }
             }
             "cd" => {
