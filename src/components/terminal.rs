@@ -1,9 +1,13 @@
 use dioxus::prelude::*;
 
+#[cfg(feature = "desktop")]
 use std::process::Stdio;
 
+#[cfg(feature = "desktop")]
 use tokio::io::{AsyncBufReadExt, BufReader};
+#[cfg(feature = "desktop")]
 use tokio::process::Command;
+#[cfg(feature = "desktop")]
 use tokio::sync::mpsc;
 
 use crate::state::{LineType, TerminalLine};
@@ -415,7 +419,6 @@ pub fn WebTerminalDemo() -> Element {
                     "  mkdir <dir>   Create a directory",
                     "  rm / del <p>  Delete a file or directory",
                     "  mv <a> <b>    Move or rename",
-                    "  whoami        Show current user",
                     "  pwd           Print working directory",
                     "  cat / type <file>  Print a file",
                     "  grep <pat> <file>  Find text in a file",
