@@ -16,6 +16,7 @@ pub fn CommandsPage() -> Element {
                 CmdCard { cmd: "help", desc: "Show available commands", example: "help" }
                 CmdCard { cmd: "clear / cls", desc: "Clear the terminal screen", example: "clear" }
                 CmdCard { cmd: "cd <dir>", desc: "Change working directory", example: "cd C:\\Projects" }
+                CmdCard { cmd: "pwd", desc: "Print working directory", example: "pwd" }
                 CmdCard { cmd: "exit", desc: "Quit Blaze Terminal", example: "exit" }
             }
 
@@ -28,7 +29,11 @@ pub fn CommandsPage() -> Element {
                 CmdCard { cmd: "mkdir <dir>", desc: "Create a directory", example: "mkdir src" }
                 CmdCard { cmd: "rm / del <path>", desc: "Delete files or directories", example: "rm temp.txt" }
                 CmdCard { cmd: "mv <from> <to>", desc: "Move or rename", example: "mv old.txt new.txt" }
+                CmdCard { cmd: "whoami", desc: "Show current user", example: "whoami" }
+                CmdCard { cmd: "cat / type <file>", desc: "Print a file", example: "cat notes.txt" }
+                CmdCard { cmd: "grep <pat> <file>", desc: "Find text in a file", example: "grep todo notes.txt" }
             }
+
         }
     }
 }
