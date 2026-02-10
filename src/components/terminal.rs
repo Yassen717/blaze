@@ -6,16 +6,13 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::mpsc;
 
-#[cfg(target_os = "windows")]
-use std::os::windows::process::CommandExt;
-
 use crate::state::{LineType, TerminalLine};
 
 #[cfg(feature = "desktop")]
 const MAX_LINES: usize = 5000;
 
 #[cfg(feature = "desktop")]
-const ALLOWED_EXTERNAL: [&str; 8] = ["ls", "dir", "echo", "vim", "mkdir", "rm", "del", "mv"];
+const ALLOWED_EXTERNAL: [&str; 11] = ["ls", "dir", "echo", "vim", "mkdir", "rm", "del", "mv", "whoami", "cat", "grep"];
 
 #[cfg(feature = "desktop")]
 #[component]
@@ -69,9 +66,10 @@ pub fn DesktopTerminal() -> Element {
                             "  help            Show this help message",
                             "  clear / cls     Clear terminal output",
                             "  cd <dir>        Change directory",
+                            "  pwd             Print working directory",
                             "  exit            Exit the terminal",
                             "",
-                            "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv.",
+                            "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat/type, grep.",
                         ];
                         let mut v = lines.write();
                         for h in help {
@@ -121,6 +119,13 @@ pub fn DesktopTerminal() -> Element {
                         }
                         return;
                     }
+                    "pwd" => {
+                        lines.write().push(TerminalLine {
+                            content: cwd.clone(),
+                            line_type: LineType::Output,
+                        });
+                        return;
+                    }
                     _ => {}
                 }
 
@@ -161,6 +166,12 @@ pub fn DesktopTerminal() -> Element {
                                     format!("del {}", quote(rest.as_str()))
                                 }
                             }
+                        }
+                        "cat" => {
+                            if rest.is_empty() { "type".to_string() } else { format!("type {}", rest) }
+                        }
+                        "grep" => {
+                            if rest.is_empty() { "findstr".to_string() } else { format!("findstr {}", rest) }
                         }
                         _ => cmd.clone(),
                     }
@@ -404,6 +415,10 @@ pub fn WebTerminalDemo() -> Element {
                     "  mkdir <dir>   Create a directory",
                     "  rm / del <p>  Delete a file or directory",
                     "  mv <a> <b>    Move or rename",
+                    "  whoami        Show current user",
+                    "  pwd           Print working directory",
+                    "  cat / type <file>  Print a file",
+                    "  grep <pat> <file>  Find text in a file",
                 ] {
                     lines.write().push(TerminalLine { content: line.into(), line_type: LineType::System });
                 }
@@ -427,6 +442,23 @@ pub fn WebTerminalDemo() -> Element {
             }
             "whoami" => {
                 lines.write().push(TerminalLine { content: "You".into(), line_type: LineType::Output });
+            }
+            "pwd" => {
+                lines.write().push(TerminalLine { content: demo_dir.into(), line_type: LineType::Output });
+            }
+            "cat" | "type" => {
+                if cmd_lower.split_whitespace().count() < 2 {
+                    lines.write().push(TerminalLine { content: "Usage: cat <file>".into(), line_type: LineType::Error });
+                } else {
+                    lines.write().push(TerminalLine { content: "(simulated) file contents...".into(), line_type: LineType::Output });
+                }
+            }
+            "grep" => {
+                if cmd_lower.split_whitespace().count() < 3 {
+                    lines.write().push(TerminalLine { content: "Usage: grep <pattern> <file>".into(), line_type: LineType::Error });
+                } else {
+                    lines.write().push(TerminalLine { content: "(simulated) matching lines...".into(), line_type: LineType::Output });
+                }
             }
             "date" => {
                 lines.write().push(TerminalLine { content: "Fri 02/07/2026".into(), line_type: LineType::Output });
