@@ -16,7 +16,14 @@ use views::Route;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
-const WEB_FAVICON: Asset = asset!("/assets/blaze-favicon.png");
+
+#[cfg(not(feature = "desktop"))]
+const FAVICON_16: Asset = asset!("/assets/branding/favicon-16-modified.png");
+#[cfg(not(feature = "desktop"))]
+const FAVICON_32: Asset = asset!("/assets/branding/favicon-32-modified.png");
+#[cfg(not(feature = "desktop"))]
+const FAVICON_48: Asset = asset!("/assets/branding/favicon-48-modified.png");
+
 
 // ======================== Main ========================
 
@@ -71,7 +78,9 @@ fn AppInner() -> Element {
 #[component]
 fn AppInner() -> Element {
     rsx! {
-        document::Link { rel: "icon", type: "image/png", href: WEB_FAVICON }
+        document::Link { rel: "icon", type: "image/png", sizes: "16x16", href: FAVICON_16 }
+        document::Link { rel: "icon", type: "image/png", sizes: "32x32", href: FAVICON_32 }
+        document::Link { rel: "icon", type: "image/png", sizes: "48x48", href: FAVICON_48 }
         Router::<Route> {}
     }
 }
