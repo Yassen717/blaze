@@ -24,12 +24,25 @@ const FAVICON_32: Asset = asset!("/assets/branding/favicon-32-modified.png");
 #[cfg(not(feature = "desktop"))]
 const FAVICON_48: Asset = asset!("/assets/branding/favicon-48-modified.png");
 
+#[cfg(feature = "desktop")]
+const ICON_BYTES: &[u8] = include_bytes!("../assets/branding/favicon-48-modified.png");
+
 
 // ======================== Main ========================
 
 #[cfg(feature = "desktop")]
 fn main() {
-    use dioxus::desktop::{Config, WindowBuilder, LogicalSize};
+    use dioxus::desktop::{Config, WindowBuilder, LogicalSize, tao::window::Icon};
+
+    // Load and decode the icon PNG
+    let icon = {
+        let img = image::load_from_memory(ICON_BYTES)
+            .expect("Failed to load icon")
+            .into_rgba8();
+        let (width, height) = img.dimensions();
+        Icon::from_rgba(img.into_raw(), width, height)
+            .expect("Failed to create icon")
+    };
 
     dioxus::LaunchBuilder::desktop()
         .with_cfg(
@@ -40,6 +53,7 @@ fn main() {
                         .with_decorations(false)
                         .with_inner_size(LogicalSize::new(1100.0, 700.0))
                         .with_min_inner_size(LogicalSize::new(600.0, 400.0))
+                        .with_window_icon(Some(icon))
                 )
                 .with_background_color((5, 6, 7, 255))
                 .with_disable_context_menu(true)
