@@ -6,7 +6,7 @@ mod components;
 mod state;
 mod views;
 
-#[cfg(feature = "desktop")]
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 use components::terminal::DesktopTerminal;
 
 #[cfg(not(feature = "desktop"))]
@@ -24,13 +24,19 @@ const FAVICON_32: Asset = asset!("/assets/branding/favicon-32-modified.png");
 #[cfg(not(feature = "desktop"))]
 const FAVICON_48: Asset = asset!("/assets/branding/favicon-48-modified.png");
 
-#[cfg(feature = "desktop")]
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 const ICON_BYTES: &[u8] = include_bytes!("../assets/branding/favicon-48-modified.png");
+
+// Provide a clear error if someone tries to build the desktop feature for wasm.
+#[cfg(all(feature = "desktop", target_arch = "wasm32"))]
+compile_error!(
+    "The 'desktop' feature cannot be built for wasm32. Use 'dx build --platform web' or 'cargo build --no-default-features --features web --target wasm32-unknown-unknown'."
+);
 
 
 // ======================== Main ========================
 
-#[cfg(feature = "desktop")]
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 fn main() {
     use dioxus::desktop::{Config, WindowBuilder, LogicalSize, tao::window::Icon};
 
@@ -78,7 +84,7 @@ fn App() -> Element {
 }
 
 /// Desktop: render the real terminal
-#[cfg(feature = "desktop")]
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 #[component]
 fn AppInner() -> Element {
     rsx! {
