@@ -14,7 +14,20 @@ use crate::state::{LineType, TerminalLine};
 
 const MAX_LINES: usize = 5000;
 
-#[cfg(feature = "desktop")]
+#[cfg(all(
+    feature = "desktop",
+    not(target_arch = "wasm32"),
+    target_os = "windows"
+))]
+const ALLOWED_EXTERNAL: [&str; 12] = [
+    "ls", "dir", "echo", "vim", "mkdir", "rm", "del", "mv", "whoami", "cat", "type", "grep",
+];
+
+#[cfg(all(
+    feature = "desktop",
+    not(target_arch = "wasm32"),
+    not(target_os = "windows")
+))]
 const ALLOWED_EXTERNAL: [&str; 11] = [
     "ls", "dir", "echo", "vim", "mkdir", "rm", "del", "mv", "whoami", "cat", "grep",
 ];
@@ -31,7 +44,7 @@ fn push_line_trim(mut lines: Signal<Vec<TerminalLine>>, line: TerminalLine) {
 /// Split a command string into args.
 ///
 /// This is intentionally not shell parsing: it supports quotes for spaces, but treats `&`, `|`, `;` etc as normal characters.
-#[cfg(feature = "desktop")]
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 fn split_args(input: &str) -> Vec<String> {
     let mut args = Vec::new();
     let mut current = String::new();
@@ -170,7 +183,7 @@ fn grep_file_lines(pattern: &str, path: &std::path::Path) -> Vec<TerminalLine> {
     out
 }
 
-#[cfg(feature = "desktop")]
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 #[component]
 pub fn DesktopTerminal() -> Element {
     let mut lines = use_signal(|| {
@@ -232,7 +245,10 @@ pub fn DesktopTerminal() -> Element {
                             "  pwd             Print working directory",
                             "  exit            Exit the terminal",
                             "",
+                            #[cfg(target_os = "windows")]
                             "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat/type, grep.",
+                            #[cfg(not(target_os = "windows"))]
+                            "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat, grep.",
                         ];
                         let mut v = lines.write();
                         for h in help {
@@ -392,7 +408,7 @@ pub fn DesktopTerminal() -> Element {
                                         Err(e) => vec![TerminalLine { content: format!("mv: {}", e), line_type: LineType::Error }],
                                     }
                                 }
-                                "cat" => {
+                                "cat" | "type" => {
                                     if argv.len() < 2 {
                                         return vec![TerminalLine { content: "Usage: cat <file>".into(), line_type: LineType::Error }];
                                     }
