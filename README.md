@@ -135,9 +135,9 @@ The web version includes:
 | `mkdir <name>` | Create directory | `mkdir new-folder` |
 | `rm` / `del <path>` | Delete file or directory | `rm file.txt` |
 | `mv <from> <to>` | Move or rename | `mv old.txt new.txt` |
-| `cat` / `type <file>` | Display file contents | `cat readme.txt` |
+| `cat` / `type <file>` | Display file contents (`type` is Windows-only alias) | `cat readme.txt` |
 | `grep <pattern> <file>` | Search text in file | `grep "TODO" notes.txt` |
-| `vim <file>` | Open file in Vim editor | `vim config.txt` |
+| `vim <file>` | Not supported (interactive TTY required) | `vim config.txt` |
 | `whoami` | Display current user | `whoami` |
 
 ## 🏗️ Architecture
@@ -191,14 +191,14 @@ blaze-terminal/
 
 ### File Operations
 ```bash
-# Create a file with content
-> echo "Hello, Blaze!" > hello.txt
+# Print text
+> echo Hello, Blaze!
 
-# Display file contents
-> cat hello.txt
+# Display file contents (pick any real file on disk)
+> cat README.md
 
 # Search for text in files
-> grep "Blaze" hello.txt
+> grep Blaze README.md
 ```
 
 ## 🔧 Development
@@ -220,8 +220,12 @@ desktop = ["dioxus/desktop"]   # Desktop platform support
 # Desktop release build
 cargo build --release --features desktop
 
-# Web build  
+# Web build (recommended via Dioxus CLI)
 dx build --platform web --release
+
+# Web build (via Cargo)
+# Note: desktop is the default feature, so disable defaults for wasm builds.
+cargo build --release --no-default-features --features web --target wasm32-unknown-unknown
 ```
 
 ## 🤝 Contributing

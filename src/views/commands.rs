@@ -25,7 +25,7 @@ pub fn CommandsPage() -> Element {
                 CmdCard { cmd: "dir", desc: "List files and folders", example: "dir" }
                 CmdCard { cmd: "ls", desc: "List files and folders", example: "ls" }
                 CmdCard { cmd: "echo <text>", desc: "Print text to the terminal", example: "echo Hello!" }
-                CmdCard { cmd: "vim", desc: "Open the Vim editor", example: "vim readme.txt" }
+                CmdCard { cmd: "vim", desc: "Not supported (interactive TTY required)", example: "vim readme.txt" }
                 CmdCard { cmd: "mkdir <dir>", desc: "Create a directory", example: "mkdir src" }
                 CmdCard { cmd: "rm / del <path>", desc: "Delete files or directories", example: "rm temp.txt" }
                 CmdCard { cmd: "mv <from> <to>", desc: "Move or rename", example: "mv old.txt new.txt" }
