@@ -765,9 +765,13 @@ pub fn WebTerminalDemo() -> Element {
                     "  clear / cls   Clear the screen",
                     "  dir / ls      List files and folders",
                     "  echo <text>   Print text to the terminal",
+                    "  curl <url>    Fetch a URL (simulated)",
+                    "  wget <url>    Fetch a URL (simulated)",
                     "  whoami        Show current user",
                     "  date          Show the date",
-                    "  ipconfig      Show network configuration",
+                    "  ipconfig      Show network configuration (Windows-style)",
+                    "  ifconfig      Show network configuration (Unix-style)",
+                    "  ip            Show network configuration (simulated)",
                     "  ping <host>   Test network connectivity",
                     "  mkdir <dir>   Create a directory",
                     "  rm / del <p>  Delete a file or directory",
@@ -799,6 +803,27 @@ pub fn WebTerminalDemo() -> Element {
             "whoami" => {
                 push_line_trim(lines, TerminalLine { content: "You".into(), line_type: LineType::Output });
             }
+            "curl" | "wget" => {
+                let mut parts = cmd.split_whitespace();
+                let _ = parts.next();
+                let url = parts.next();
+                match url {
+                    Some(url) => {
+                        for line in [
+                            format!("(simulated) fetching {}...", url),
+                            "HTTP/1.1 200 OK".to_string(),
+                            "content-type: text/html; charset=utf-8".to_string(),
+                            "".to_string(),
+                            "<html>... (body truncated) ...</html>".to_string(),
+                        ] {
+                            push_line_trim(lines, TerminalLine { content: line, line_type: LineType::Output });
+                        }
+                    }
+                    None => {
+                        push_line_trim(lines, TerminalLine { content: "Usage: curl <url>".into(), line_type: LineType::Error });
+                    }
+                }
+            }
             "pwd" => {
                 push_line_trim(lines, TerminalLine { content: demo_dir.into(), line_type: LineType::Output });
             }
@@ -819,7 +844,7 @@ pub fn WebTerminalDemo() -> Element {
             "date" => {
                 push_line_trim(lines, TerminalLine { content: "Fri 02/07/2026".into(), line_type: LineType::Output });
             }
-            "ipconfig" => {
+            "ip" | "ipconfig" => {
                 for line in [
                     "Windows IP Configuration",
                     "",
@@ -827,6 +852,16 @@ pub fn WebTerminalDemo() -> Element {
                     "   IPv4 Address. . . . . : 192.168.1.100",
                     "   Subnet Mask . . . . . : 255.255.255.0",
                     "   Default Gateway . . . : 192.168.1.1",
+                ] {
+                    push_line_trim(lines, TerminalLine { content: line.into(), line_type: LineType::Output });
+                }
+            }
+            "ifconfig" => {
+                for line in [
+                    "eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500",
+                    "        inet 192.168.1.100  netmask 255.255.255.0  broadcast 192.168.1.255",
+                    "        inet6 fe80::1  prefixlen 64  scopeid 0x20<link>",
+                    "        ether aa:bb:cc:dd:ee:ff  txqueuelen 1000  (Ethernet)",
                 ] {
                     push_line_trim(lines, TerminalLine { content: line.into(), line_type: LineType::Output });
                 }

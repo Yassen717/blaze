@@ -19,6 +19,10 @@ pub fn DemoPage() -> Element {
                     CmdCard { cmd: "clear / cls", desc: "Clear the screen", example: "clear" }
                     CmdCard { cmd: "dir / ls", desc: "List files and folders", example: "dir" }
                     CmdCard { cmd: "echo <text>", desc: "Print text", example: "echo Hello" }
+                    CmdCard { cmd: "curl <url>", desc: "Fetch a URL (simulated)", example: "curl https://example.com" }
+                    CmdCard { cmd: "wget <url>", desc: "Fetch a URL (simulated)", example: "wget https://example.com" }
+                    CmdCard { cmd: "ipconfig / ip", desc: "Show network config", example: "ipconfig" }
+                    CmdCard { cmd: "ifconfig", desc: "Show network config", example: "ifconfig" }
                     CmdCard { cmd: "mkdir <dir>", desc: "Create a directory", example: "mkdir docs" }
                     CmdCard { cmd: "rm / del <path>", desc: "Delete files or folders", example: "rm temp.txt" }
                     CmdCard { cmd: "mv <from> <to>", desc: "Move or rename", example: "mv a.txt b.txt" }
