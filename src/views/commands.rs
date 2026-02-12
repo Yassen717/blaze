@@ -25,6 +25,8 @@ pub fn CommandsPage() -> Element {
                 CmdCard { cmd: "dir", desc: "List files and folders", example: "dir" }
                 CmdCard { cmd: "ls", desc: "List files and folders", example: "ls" }
                 CmdCard { cmd: "echo <text>", desc: "Print text to the terminal", example: "echo Hello!" }
+                CmdCard { cmd: "curl <url> ...", desc: "Fetch a URL (requires curl installed)", example: "curl https://example.com" }
+                CmdCard { cmd: "wget <url> ...", desc: "Fetch a URL (requires wget installed)", example: "wget https://example.com" }
                 CmdCard { cmd: "vim", desc: "Not supported (interactive TTY required)", example: "vim readme.txt" }
                 CmdCard { cmd: "mkdir <dir>", desc: "Create a directory", example: "mkdir src" }
                 CmdCard { cmd: "rm / del <path>", desc: "Delete files or directories", example: "rm temp.txt" }
@@ -32,6 +34,8 @@ pub fn CommandsPage() -> Element {
                 CmdCard { cmd: "whoami", desc: "Show current user", example: "whoami" }
                 CmdCard { cmd: "cat / type <file>", desc: "Print a file", example: "cat notes.txt" }
                 CmdCard { cmd: "grep <pat> <file>", desc: "Find text in a file", example: "grep todo notes.txt" }
+                CmdCard { cmd: "ipconfig / ip", desc: "Show network config (Windows)", example: "ipconfig" }
+                CmdCard { cmd: "ifconfig / ip", desc: "Show network config (Linux/macOS)", example: "ifconfig" }
             }
 
         }

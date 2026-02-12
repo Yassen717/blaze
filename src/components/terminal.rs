@@ -14,13 +14,31 @@ use crate::state::{LineType, TerminalLine};
 
 const MAX_LINES: usize = 5000;
 
+#[cfg(all(feature = "desktop", target_os = "windows"))]
+const MAX_CMD_OUTPUT_BYTES: usize = 1024 * 1024; // 1 MiB
+
 #[cfg(all(
     feature = "desktop",
     not(target_arch = "wasm32"),
     target_os = "windows"
 ))]
-const ALLOWED_EXTERNAL: [&str; 12] = [
-    "ls", "dir", "echo", "vim", "mkdir", "rm", "del", "mv", "whoami", "cat", "type", "grep",
+const ALLOWED_EXTERNAL: [&str; 16] = [
+    "ls",
+    "dir",
+    "echo",
+    "vim",
+    "mkdir",
+    "rm",
+    "del",
+    "mv",
+    "whoami",
+    "cat",
+    "type",
+    "grep",
+    "curl",
+    "wget",
+    "ipconfig",
+    "ip",
 ];
 
 #[cfg(all(
@@ -28,8 +46,22 @@ const ALLOWED_EXTERNAL: [&str; 12] = [
     not(target_arch = "wasm32"),
     not(target_os = "windows")
 ))]
-const ALLOWED_EXTERNAL: [&str; 11] = [
-    "ls", "dir", "echo", "vim", "mkdir", "rm", "del", "mv", "whoami", "cat", "grep",
+const ALLOWED_EXTERNAL: [&str; 15] = [
+    "ls",
+    "dir",
+    "echo",
+    "vim",
+    "mkdir",
+    "rm",
+    "del",
+    "mv",
+    "whoami",
+    "cat",
+    "grep",
+    "curl",
+    "wget",
+    "ifconfig",
+    "ip",
 ];
 
 fn push_line_trim(mut lines: Signal<Vec<TerminalLine>>, line: TerminalLine) {
@@ -93,6 +125,59 @@ fn resolve_in_dir(cwd: &str, target: &str) -> std::path::PathBuf {
     } else {
         std::path::Path::new(cwd).join(target_path)
     }
+}
+
+#[cfg(all(feature = "desktop", target_os = "windows"))]
+fn run_external_command_lines(cwd: &str, program: &str, args: &[String]) -> Vec<TerminalLine> {
+    use std::process::Command;
+
+    let output = Command::new(program)
+        .args(args)
+        .current_dir(cwd)
+        .output();
+
+    let output = match output {
+        Ok(o) => o,
+        Err(e) => {
+            return vec![TerminalLine {
+                content: format!("{}: {}", program, e),
+                line_type: LineType::Error,
+            }]
+        }
+    };
+
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(&output.stdout);
+    bytes.extend_from_slice(&output.stderr);
+
+    if bytes.len() > MAX_CMD_OUTPUT_BYTES {
+        bytes.truncate(MAX_CMD_OUTPUT_BYTES);
+        bytes.extend_from_slice(b"\n...(output truncated)\n");
+    }
+
+    let text = String::from_utf8_lossy(&bytes);
+    let line_type = if output.status.success() {
+        LineType::Output
+    } else {
+        LineType::Error
+    };
+
+    let mut out = Vec::new();
+    for line in text.lines() {
+        out.push(TerminalLine {
+            content: line.to_string(),
+            line_type: line_type.clone(),
+        });
+    }
+
+    if out.is_empty() {
+        out.push(TerminalLine {
+            content: String::new(),
+            line_type,
+        });
+    }
+
+    out
 }
 
 #[cfg(all(feature = "desktop", target_os = "windows"))]
@@ -246,9 +331,9 @@ pub fn DesktopTerminal() -> Element {
                             "  exit            Exit the terminal",
                             "",
                             #[cfg(target_os = "windows")]
-                            "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat/type, grep.",
+                            "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat/type, grep, curl, wget, ipconfig (ip).",
                             #[cfg(not(target_os = "windows"))]
-                            "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat, grep.",
+                            "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat, grep, curl, wget, ifconfig, ip.",
                         ];
                         let mut v = lines.write();
                         for h in help {
@@ -427,6 +512,14 @@ pub fn DesktopTerminal() -> Element {
                                     content: "vim is not supported in this UI (interactive TTY required).".into(),
                                     line_type: LineType::Error,
                                 }],
+                                "ip" => {
+                                    let extra_args = argv.iter().skip(1).cloned().collect::<Vec<_>>();
+                                    run_external_command_lines(&cwd, "ipconfig", &extra_args)
+                                }
+                                "ipconfig" | "curl" | "wget" => {
+                                    let extra_args = argv.iter().skip(1).cloned().collect::<Vec<_>>();
+                                    run_external_command_lines(&cwd, &program, &extra_args)
+                                }
                                 _ => vec![TerminalLine {
                                     content: format!("Unhandled command: {}", program),
                                     line_type: LineType::Error,

@@ -132,11 +132,15 @@ The web version includes:
 |---------|-------------|---------|
 | `ls` / `dir` | List directory contents | `ls` or `dir` |
 | `echo <text>` | Print text to terminal | `echo "Hello World"` |
+| `curl <url> ...` | Fetch a URL (requires `curl` installed) | `curl https://example.com` |
+| `wget <url> ...` | Fetch a URL (requires `wget` installed) | `wget https://example.com` |
 | `mkdir <name>` | Create directory | `mkdir new-folder` |
 | `rm` / `del <path>` | Delete file or directory | `rm file.txt` |
 | `mv <from> <to>` | Move or rename | `mv old.txt new.txt` |
 | `cat` / `type <file>` | Display file contents (`type` is Windows-only alias) | `cat readme.txt` |
 | `grep <pattern> <file>` | Search text in file | `grep "TODO" notes.txt` |
+| `ipconfig` / `ip` | Show network config (Windows) | `ipconfig` |
+| `ifconfig` / `ip` | Show network config (Linux/macOS) | `ifconfig` |
 | `vim <file>` | Not supported (interactive TTY required) | `vim config.txt` |
 | `whoami` | Display current user | `whoami` |
 
