@@ -1,22 +1,174 @@
 use dioxus::prelude::*;
 
-#[cfg(feature = "desktop")]
+#[cfg(all(feature = "desktop", not(target_os = "windows")))]
 use std::process::Stdio;
 
-#[cfg(feature = "desktop")]
+#[cfg(all(feature = "desktop", not(target_os = "windows")))]
 use tokio::io::{AsyncBufReadExt, BufReader};
-#[cfg(feature = "desktop")]
+#[cfg(all(feature = "desktop", not(target_os = "windows")))]
 use tokio::process::Command;
-#[cfg(feature = "desktop")]
+#[cfg(all(feature = "desktop", not(target_os = "windows")))]
 use tokio::sync::mpsc;
 
 use crate::state::{LineType, TerminalLine};
 
-#[cfg(feature = "desktop")]
 const MAX_LINES: usize = 5000;
 
 #[cfg(feature = "desktop")]
-const ALLOWED_EXTERNAL: [&str; 11] = ["ls", "dir", "echo", "vim", "mkdir", "rm", "del", "mv", "whoami", "cat", "grep"];
+const ALLOWED_EXTERNAL: [&str; 11] = [
+    "ls", "dir", "echo", "vim", "mkdir", "rm", "del", "mv", "whoami", "cat", "grep",
+];
+
+fn push_line_trim(mut lines: Signal<Vec<TerminalLine>>, line: TerminalLine) {
+    let mut v = lines.write();
+    v.push(line);
+    if v.len() > MAX_LINES {
+        let excess = v.len() - MAX_LINES;
+        v.drain(0..excess);
+    }
+}
+
+/// Split a command string into args.
+///
+/// This is intentionally not shell parsing: it supports quotes for spaces, but treats `&`, `|`, `;` etc as normal characters.
+#[cfg(feature = "desktop")]
+fn split_args(input: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+
+    let mut chars = input.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '"' => in_quotes = !in_quotes,
+            '\\' => {
+                if let Some('"') = chars.peek().copied() {
+                    chars.next();
+                    current.push('"');
+                } else {
+                    current.push('\\');
+                }
+            }
+            c if c.is_whitespace() && !in_quotes => {
+                if !current.is_empty() {
+                    args.push(std::mem::take(&mut current));
+                }
+                while let Some(c2) = chars.peek().copied() {
+                    if c2.is_whitespace() {
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+            }
+            _ => current.push(ch),
+        }
+    }
+
+    if !current.is_empty() {
+        args.push(current);
+    }
+
+    args
+}
+
+#[cfg(all(feature = "desktop", target_os = "windows"))]
+fn resolve_in_dir(cwd: &str, target: &str) -> std::path::PathBuf {
+    let target_path = std::path::Path::new(target);
+    if target_path.is_absolute() {
+        target_path.to_path_buf()
+    } else {
+        std::path::Path::new(cwd).join(target_path)
+    }
+}
+
+#[cfg(all(feature = "desktop", target_os = "windows"))]
+fn list_dir_lines(path: &std::path::Path) -> Vec<TerminalLine> {
+    let mut out = Vec::new();
+    match std::fs::read_dir(path) {
+        Ok(entries) => {
+            out.push(TerminalLine {
+                content: format!(" Directory of {}", path.display()),
+                line_type: LineType::Output,
+            });
+            out.push(TerminalLine {
+                content: String::new(),
+                line_type: LineType::Output,
+            });
+
+            let mut names: Vec<String> = entries
+                .filter_map(|e| e.ok())
+                .filter_map(|e| e.file_name().into_string().ok())
+                .collect();
+            names.sort();
+
+            for name in names {
+                out.push(TerminalLine {
+                    content: name,
+                    line_type: LineType::Output,
+                });
+            }
+        }
+        Err(e) => out.push(TerminalLine {
+            content: format!("dir: {}", e),
+            line_type: LineType::Error,
+        }),
+    }
+    out
+}
+
+#[cfg(all(feature = "desktop", target_os = "windows"))]
+fn read_file_lines(path: &std::path::Path) -> Vec<TerminalLine> {
+    const MAX_BYTES: usize = 512 * 1024;
+    match std::fs::read(path) {
+        Ok(bytes) => {
+            let bytes = if bytes.len() > MAX_BYTES { &bytes[..MAX_BYTES] } else { &bytes };
+            let text = String::from_utf8_lossy(bytes);
+            text.lines()
+                .map(|l| TerminalLine {
+                    content: l.to_string(),
+                    line_type: LineType::Output,
+                })
+                .collect()
+        }
+        Err(e) => vec![TerminalLine {
+            content: format!("cat: {}", e),
+            line_type: LineType::Error,
+        }],
+    }
+}
+
+#[cfg(all(feature = "desktop", target_os = "windows"))]
+fn grep_file_lines(pattern: &str, path: &std::path::Path) -> Vec<TerminalLine> {
+    let content = match std::fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(e) => {
+            return vec![TerminalLine {
+                content: format!("grep: {}", e),
+                line_type: LineType::Error,
+            }]
+        }
+    };
+
+    let mut out = Vec::new();
+    for (idx, line) in content.lines().enumerate() {
+        if line.contains(pattern) {
+            out.push(TerminalLine {
+                content: format!("{}:{}", idx + 1, line),
+                line_type: LineType::Output,
+            });
+        }
+    }
+
+    if out.is_empty() {
+        out.push(TerminalLine {
+            content: "(no matches)".to_string(),
+            line_type: LineType::Output,
+        });
+    }
+
+    out
+}
 
 #[cfg(feature = "desktop")]
 #[component]
@@ -50,13 +202,20 @@ pub fn DesktopTerminal() -> Element {
                 cmd_history.write().push(cmd.clone());
                 history_idx.set(-1);
 
-                lines.write().push(TerminalLine {
-                    content: format!("{} > {}", cwd, cmd),
-                    line_type: LineType::Command,
-                });
+                push_line_trim(
+                    lines,
+                    TerminalLine {
+                        content: format!("{} > {}", cwd, cmd),
+                        line_type: LineType::Command,
+                    },
+                );
                 input_value.set(String::new());
 
-                let first = cmd.split_whitespace().next().unwrap_or("").to_lowercase();
+                let args = split_args(&cmd);
+                let first = args
+                    .first()
+                    .map(|s| s.to_lowercase())
+                    .unwrap_or_default();
 
                 match first.as_str() {
                     "clear" | "cls" => {
@@ -88,13 +247,15 @@ pub fn DesktopTerminal() -> Element {
                         std::process::exit(0);
                     }
                     "cd" => {
-                        let rest: String =
-                            cmd.split_whitespace().skip(1).collect::<Vec<&str>>().join(" ");
+                        let rest = args.iter().skip(1).cloned().collect::<Vec<_>>().join(" ");
                         if rest.is_empty() {
-                            lines.write().push(TerminalLine {
-                                content: cwd.clone(),
-                                line_type: LineType::Output,
-                            });
+                            push_line_trim(
+                                lines,
+                                TerminalLine {
+                                    content: cwd.clone(),
+                                    line_type: LineType::Output,
+                                },
+                            );
                             return;
                         }
                         let target = if std::path::Path::new(&rest).is_absolute() {
@@ -109,161 +270,241 @@ pub fn DesktopTerminal() -> Element {
                                 current_dir.set(clean);
                             }
                             Ok(_) => {
-                                lines.write().push(TerminalLine {
-                                    content: format!("Not a directory: {}", rest),
-                                    line_type: LineType::Error,
-                                });
+                                push_line_trim(
+                                    lines,
+                                    TerminalLine {
+                                        content: format!("Not a directory: {}", rest),
+                                        line_type: LineType::Error,
+                                    },
+                                );
                             }
                             Err(e) => {
-                                lines.write().push(TerminalLine {
-                                    content: format!("cd: {}: {}", rest, e),
-                                    line_type: LineType::Error,
-                                });
+                                push_line_trim(
+                                    lines,
+                                    TerminalLine {
+                                        content: format!("cd: {}: {}", rest, e),
+                                        line_type: LineType::Error,
+                                    },
+                                );
                             }
                         }
                         return;
                     }
                     "pwd" => {
-                        lines.write().push(TerminalLine {
-                            content: cwd.clone(),
-                            line_type: LineType::Output,
-                        });
+                        push_line_trim(
+                            lines,
+                            TerminalLine {
+                                content: cwd.clone(),
+                                line_type: LineType::Output,
+                            },
+                        );
                         return;
                     }
                     _ => {}
                 }
 
                 if !ALLOWED_EXTERNAL.contains(&first.as_str()) {
-                    lines.write().push(TerminalLine {
-                        content: format!(
-                            "Command '{}' is not allowed. Type 'help' for a list of available commands.",
-                            first
-                        ),
-                        line_type: LineType::Error,
-                    });
+                    push_line_trim(
+                        lines,
+                        TerminalLine {
+                            content: format!(
+                                "Command '{}' is not allowed. Type 'help' for a list of available commands.",
+                                first
+                            ),
+                            line_type: LineType::Error,
+                        },
+                    );
                     return;
                 }
 
+                // Run allowed commands without invoking a shell.
                 #[cfg(target_os = "windows")]
-                let exec_cmd = {
-                    let rest = cmd.split_whitespace().skip(1).collect::<Vec<&str>>().join(" ");
-                    let quote = |s: &str| {
-                        if s.contains(' ') { format!("\"{}\"", s) } else { s.to_string() }
-                    };
-                    match first.as_str() {
-                        "ls" => {
-                            if rest.is_empty() { "dir".to_string() } else { format!("dir {}", rest) }
-                        }
-                        "rm" | "del" => {
-                            if rest.is_empty() {
-                                "del".to_string()
-                            } else {
-                                let target = std::path::Path::new(&rest);
-                                let full = if target.is_absolute() {
-                                    target.to_path_buf()
-                                } else {
-                                    std::path::Path::new(&cwd).join(target)
-                                };
-                                if full.is_dir() {
-                                    format!("rmdir /S /Q {}", quote(full.to_string_lossy().as_ref()))
-                                } else {
-                                    format!("del {}", quote(rest.as_str()))
+                {
+                    let lines_sig = lines;
+                    let program = first.clone();
+                    let argv = args;
+                    spawn(async move {
+                        let result = tokio::task::spawn_blocking(move || -> Vec<TerminalLine> {
+                            match program.as_str() {
+                                "dir" | "ls" => {
+                                    let target = argv.get(1).map(|s| s.as_str()).unwrap_or(".");
+                                    let path = resolve_in_dir(&cwd, target);
+                                    list_dir_lines(&path)
+                                }
+                                "echo" => {
+                                    let text = argv.iter().skip(1).cloned().collect::<Vec<_>>().join(" ");
+                                    vec![TerminalLine { content: text, line_type: LineType::Output }]
+                                }
+                                "whoami" => {
+                                    let user = std::env::var("USERNAME")
+                                        .or_else(|_| std::env::var("USER"))
+                                        .unwrap_or_else(|_| "unknown".to_string());
+                                    vec![TerminalLine { content: user, line_type: LineType::Output }]
+                                }
+                                "mkdir" => {
+                                    if argv.len() < 2 {
+                                        return vec![TerminalLine { content: "Usage: mkdir <dir>".into(), line_type: LineType::Error }];
+                                    }
+                                    let path = resolve_in_dir(&cwd, &argv[1]);
+                                    match std::fs::create_dir_all(&path) {
+                                        Ok(()) => vec![TerminalLine { content: "Directory created".into(), line_type: LineType::Output }],
+                                        Err(e) => vec![TerminalLine { content: format!("mkdir: {}", e), line_type: LineType::Error }],
+                                    }
+                                }
+                                "rm" | "del" => {
+                                    if argv.len() < 2 {
+                                        return vec![TerminalLine { content: "Usage: rm [-r] <path>".into(), line_type: LineType::Error }];
+                                    }
+                                    let mut recursive = false;
+                                    let mut idx = 1;
+                                    if argv.get(1).map(|s| s.as_str()) == Some("-r") || argv.get(1).map(|s| s.as_str()) == Some("-R") {
+                                        recursive = true;
+                                        idx = 2;
+                                    }
+                                    let Some(target) = argv.get(idx) else {
+                                        return vec![TerminalLine { content: "Usage: rm [-r] <path>".into(), line_type: LineType::Error }];
+                                    };
+                                    let path = resolve_in_dir(&cwd, target);
+                                    let result = match std::fs::metadata(&path) {
+                                        Ok(m) if m.is_dir() => {
+                                            if recursive {
+                                                std::fs::remove_dir_all(&path)
+                                            } else {
+                                                Err(std::io::Error::new(std::io::ErrorKind::Other, "Is a directory (use rm -r)"))
+                                            }
+                                        }
+                                        Ok(_) => std::fs::remove_file(&path),
+                                        Err(e) => Err(e),
+                                    };
+                                    match result {
+                                        Ok(()) => vec![TerminalLine { content: "Deleted".into(), line_type: LineType::Output }],
+                                        Err(e) => vec![TerminalLine { content: format!("rm: {}", e), line_type: LineType::Error }],
+                                    }
+                                }
+                                "mv" => {
+                                    if argv.len() < 3 {
+                                        return vec![TerminalLine { content: "Usage: mv <from> <to>".into(), line_type: LineType::Error }];
+                                    }
+                                    let from = resolve_in_dir(&cwd, &argv[1]);
+                                    let to = resolve_in_dir(&cwd, &argv[2]);
+                                    match std::fs::rename(&from, &to) {
+                                        Ok(()) => vec![TerminalLine { content: "Moved".into(), line_type: LineType::Output }],
+                                        Err(e) => vec![TerminalLine { content: format!("mv: {}", e), line_type: LineType::Error }],
+                                    }
+                                }
+                                "cat" => {
+                                    if argv.len() < 2 {
+                                        return vec![TerminalLine { content: "Usage: cat <file>".into(), line_type: LineType::Error }];
+                                    }
+                                    let path = resolve_in_dir(&cwd, &argv[1]);
+                                    read_file_lines(&path)
+                                }
+                                "grep" => {
+                                    if argv.len() < 3 {
+                                        return vec![TerminalLine { content: "Usage: grep <pattern> <file>".into(), line_type: LineType::Error }];
+                                    }
+                                    let pat = &argv[1];
+                                    let path = resolve_in_dir(&cwd, &argv[2]);
+                                    grep_file_lines(pat, &path)
+                                }
+                                "vim" => vec![TerminalLine {
+                                    content: "vim is not supported in this UI (interactive TTY required).".into(),
+                                    line_type: LineType::Error,
+                                }],
+                                _ => vec![TerminalLine {
+                                    content: format!("Unhandled command: {}", program),
+                                    line_type: LineType::Error,
+                                }],
+                            }
+                        })
+                        .await;
+
+                        match result {
+                            Ok(lines_out) => {
+                                for line in lines_out {
+                                    push_line_trim(lines_sig, line);
                                 }
                             }
+                            Err(e) => {
+                                push_line_trim(
+                                    lines_sig,
+                                    TerminalLine {
+                                        content: format!("Error: {}", e),
+                                        line_type: LineType::Error,
+                                    },
+                                );
+                            }
                         }
-                        "cat" => {
-                            if rest.is_empty() { "type".to_string() } else { format!("type {}", rest) }
-                        }
-                        "grep" => {
-                            if rest.is_empty() { "findstr".to_string() } else { format!("findstr {}", rest) }
-                        }
-                        _ => cmd.clone(),
-                    }
-                };
+                    });
+                }
 
                 #[cfg(not(target_os = "windows"))]
-                let exec_cmd = cmd.clone();
-
-                spawn(async move {
+                {
                     let mut lines = lines;
-                    #[cfg(target_os = "windows")]
-                    let child = Command::new("cmd")
-                        .args(["/C", &exec_cmd])
-                        .current_dir(&cwd)
-                        .stdout(Stdio::piped())
-                        .stderr(Stdio::piped())
-                        .creation_flags(0x08000000)
-                        .spawn();
+                    let program = first.clone();
+                    let program_args = args.iter().skip(1).cloned().collect::<Vec<_>>();
 
-                    #[cfg(not(target_os = "windows"))]
-                    let child = Command::new("sh")
-                        .args(["-c", &exec_cmd])
-                        .current_dir(&cwd)
-                        .stdout(Stdio::piped())
-                        .stderr(Stdio::piped())
-                        .spawn();
+                    spawn(async move {
+                        let child = Command::new(&program)
+                            .args(&program_args)
+                            .current_dir(&cwd)
+                            .stdout(Stdio::piped())
+                            .stderr(Stdio::piped())
+                            .spawn();
 
-                    let push_line = |lines: &mut Signal<Vec<TerminalLine>>, line: TerminalLine| {
-                        let mut v = lines.write();
-                        v.push(line);
-                        if v.len() > MAX_LINES {
-                            let excess = v.len() - MAX_LINES;
-                            v.drain(0..excess);
-                        }
-                    };
+                        match child {
+                            Ok(mut child) => {
+                                let stdout = child.stdout.take();
+                                let stderr = child.stderr.take();
 
-                    match child {
-                        Ok(mut child) => {
-                            let stdout = child.stdout.take();
-                            let stderr = child.stderr.take();
+                                let (tx, mut rx) = mpsc::unbounded_channel::<TerminalLine>();
 
-                            let (tx, mut rx) = mpsc::unbounded_channel::<TerminalLine>();
+                                if let Some(out) = stdout {
+                                    let tx_out = tx.clone();
+                                    spawn(async move {
+                                        let mut reader = BufReader::new(out).lines();
+                                        while let Ok(Some(line)) = reader.next_line().await {
+                                            let _ = tx_out.send(TerminalLine {
+                                                content: line,
+                                                line_type: LineType::Output,
+                                            });
+                                        }
+                                    });
+                                }
 
-                            if let Some(out) = stdout {
-                                let tx_out = tx.clone();
-                                spawn(async move {
-                                    let mut reader = BufReader::new(out).lines();
-                                    while let Ok(Some(line)) = reader.next_line().await {
-                                        let _ = tx_out.send(TerminalLine {
-                                            content: line,
-                                            line_type: LineType::Output,
-                                        });
-                                    }
-                                });
+                                if let Some(err) = stderr {
+                                    let tx_err = tx.clone();
+                                    spawn(async move {
+                                        let mut reader = BufReader::new(err).lines();
+                                        while let Ok(Some(line)) = reader.next_line().await {
+                                            let _ = tx_err.send(TerminalLine {
+                                                content: line,
+                                                line_type: LineType::Error,
+                                            });
+                                        }
+                                    });
+                                }
+
+                                drop(tx);
+
+                                while let Some(line) = rx.recv().await {
+                                    push_line_trim(lines, line);
+                                }
+
+                                let _ = child.wait().await;
                             }
-
-                            if let Some(err) = stderr {
-                                let tx_err = tx.clone();
-                                spawn(async move {
-                                    let mut reader = BufReader::new(err).lines();
-                                    while let Ok(Some(line)) = reader.next_line().await {
-                                        let _ = tx_err.send(TerminalLine {
-                                            content: line,
-                                            line_type: LineType::Error,
-                                        });
-                                    }
-                                });
+                            Err(e) => {
+                                push_line_trim(
+                                    lines,
+                                    TerminalLine {
+                                        content: format!("Error: {}", e),
+                                        line_type: LineType::Error,
+                                    },
+                                );
                             }
-
-                            drop(tx);
-
-                            while let Some(line) = rx.recv().await {
-                                push_line(&mut lines, line);
-                            }
-
-                            let _ = child.wait().await;
                         }
-                        Err(e) => {
-                            push_line(
-                                &mut lines,
-                                TerminalLine {
-                                    content: format!("Error: {}", e),
-                                    line_type: LineType::Error,
-                                },
-                            );
-                        }
-                    }
-                });
+                    });
+                }
             }
             Key::ArrowUp => {
                 let history = cmd_history();
@@ -390,10 +631,13 @@ pub fn WebTerminalDemo() -> Element {
             return;
         }
 
-        lines.write().push(TerminalLine {
-            content: format!("{} > {}", demo_dir, cmd),
-            line_type: LineType::Command,
-        });
+        push_line_trim(
+            lines,
+            TerminalLine {
+                content: format!("{} > {}", demo_dir, cmd),
+                line_type: LineType::Command,
+            },
+        );
         input_value.set(String::new());
 
         let cmd_lower = cmd.to_lowercase();
@@ -423,7 +667,7 @@ pub fn WebTerminalDemo() -> Element {
                     "  cat / type <file>  Print a file",
                     "  grep <pat> <file>  Find text in a file",
                 ] {
-                    lines.write().push(TerminalLine { content: line.into(), line_type: LineType::System });
+                    push_line_trim(lines, TerminalLine { content: line.into(), line_type: LineType::System });
                 }
             }
             "dir" | "ls" => {
@@ -436,35 +680,35 @@ pub fn WebTerminalDemo() -> Element {
                     " 01/15/2026  03:45 PM           2,048   notes.txt",
                     "               1 File(s)         2,048 bytes",
                 ] {
-                    lines.write().push(TerminalLine { content: line.into(), line_type: LineType::Output });
+                    push_line_trim(lines, TerminalLine { content: line.into(), line_type: LineType::Output });
                 }
             }
             "echo" => {
                 let text = if cmd.len() > 5 { cmd[5..].to_string() } else { String::new() };
-                lines.write().push(TerminalLine { content: text, line_type: LineType::Output });
+                push_line_trim(lines, TerminalLine { content: text, line_type: LineType::Output });
             }
             "whoami" => {
-                lines.write().push(TerminalLine { content: "You".into(), line_type: LineType::Output });
+                push_line_trim(lines, TerminalLine { content: "You".into(), line_type: LineType::Output });
             }
             "pwd" => {
-                lines.write().push(TerminalLine { content: demo_dir.into(), line_type: LineType::Output });
+                push_line_trim(lines, TerminalLine { content: demo_dir.into(), line_type: LineType::Output });
             }
             "cat" | "type" => {
                 if cmd_lower.split_whitespace().count() < 2 {
-                    lines.write().push(TerminalLine { content: "Usage: cat <file>".into(), line_type: LineType::Error });
+                    push_line_trim(lines, TerminalLine { content: "Usage: cat <file>".into(), line_type: LineType::Error });
                 } else {
-                    lines.write().push(TerminalLine { content: "(simulated) file contents...".into(), line_type: LineType::Output });
+                    push_line_trim(lines, TerminalLine { content: "(simulated) file contents...".into(), line_type: LineType::Output });
                 }
             }
             "grep" => {
                 if cmd_lower.split_whitespace().count() < 3 {
-                    lines.write().push(TerminalLine { content: "Usage: grep <pattern> <file>".into(), line_type: LineType::Error });
+                    push_line_trim(lines, TerminalLine { content: "Usage: grep <pattern> <file>".into(), line_type: LineType::Error });
                 } else {
-                    lines.write().push(TerminalLine { content: "(simulated) matching lines...".into(), line_type: LineType::Output });
+                    push_line_trim(lines, TerminalLine { content: "(simulated) matching lines...".into(), line_type: LineType::Output });
                 }
             }
             "date" => {
-                lines.write().push(TerminalLine { content: "Fri 02/07/2026".into(), line_type: LineType::Output });
+                push_line_trim(lines, TerminalLine { content: "Fri 02/07/2026".into(), line_type: LineType::Output });
             }
             "ipconfig" => {
                 for line in [
@@ -475,12 +719,12 @@ pub fn WebTerminalDemo() -> Element {
                     "   Subnet Mask . . . . . : 255.255.255.0",
                     "   Default Gateway . . . : 192.168.1.1",
                 ] {
-                    lines.write().push(TerminalLine { content: line.into(), line_type: LineType::Output });
+                    push_line_trim(lines, TerminalLine { content: line.into(), line_type: LineType::Output });
                 }
             }
             "ping" => {
                 if cmd_lower.split_whitespace().count() < 2 {
-                    lines.write().push(TerminalLine { content: "Usage: ping <host>".into(), line_type: LineType::Error });
+                    push_line_trim(lines, TerminalLine { content: "Usage: ping <host>".into(), line_type: LineType::Error });
                 } else {
                     for line in [
                         "Pinging host with 32 bytes of data:",
@@ -488,45 +732,45 @@ pub fn WebTerminalDemo() -> Element {
                         "Reply from 93.184.216.34: bytes=32 time=11ms TTL=56",
                         "Reply from 93.184.216.34: bytes=32 time=13ms TTL=56",
                     ] {
-                        lines.write().push(TerminalLine { content: line.into(), line_type: LineType::Output });
+                        push_line_trim(lines, TerminalLine { content: line.into(), line_type: LineType::Output });
                     }
                 }
             }
             "mkdir" => {
                 if cmd_lower.split_whitespace().count() < 2 {
-                    lines.write().push(TerminalLine { content: "Usage: mkdir <dir>".into(), line_type: LineType::Error });
+                    push_line_trim(lines, TerminalLine { content: "Usage: mkdir <dir>".into(), line_type: LineType::Error });
                 } else {
-                    lines.write().push(TerminalLine { content: "Directory created (simulated)".into(), line_type: LineType::Output });
+                    push_line_trim(lines, TerminalLine { content: "Directory created (simulated)".into(), line_type: LineType::Output });
                 }
             }
             "rm" | "del" => {
                 if cmd_lower.split_whitespace().count() < 2 {
-                    lines.write().push(TerminalLine { content: "Usage: rm <path>".into(), line_type: LineType::Error });
+                    push_line_trim(lines, TerminalLine { content: "Usage: rm <path>".into(), line_type: LineType::Error });
                 } else {
-                    lines.write().push(TerminalLine { content: "Deleted (simulated)".into(), line_type: LineType::Output });
+                    push_line_trim(lines, TerminalLine { content: "Deleted (simulated)".into(), line_type: LineType::Output });
                 }
             }
             "mv" => {
                 if cmd_lower.split_whitespace().count() < 3 {
-                    lines.write().push(TerminalLine { content: "Usage: mv <source> <dest>".into(), line_type: LineType::Error });
+                    push_line_trim(lines, TerminalLine { content: "Usage: mv <source> <dest>".into(), line_type: LineType::Error });
                 } else {
-                    lines.write().push(TerminalLine { content: "Moved (simulated)".into(), line_type: LineType::Output });
+                    push_line_trim(lines, TerminalLine { content: "Moved (simulated)".into(), line_type: LineType::Output });
                 }
             }
             "cd" => {
-                lines.write().push(TerminalLine {
+                push_line_trim(lines, TerminalLine {
                     content: "Directory changed (simulated)".into(),
                     line_type: LineType::System,
                 });
             }
             "exit" => {
-                lines.write().push(TerminalLine {
+                push_line_trim(lines, TerminalLine {
                     content: "Can't exit the web demo! Download the real thing.".into(),
                     line_type: LineType::System,
                 });
             }
             _ => {
-                lines.write().push(TerminalLine {
+                push_line_trim(lines, TerminalLine {
                     content: format!("'{}': command not recognized. Type 'help' for commands.", cmd),
                     line_type: LineType::Error,
                 });
