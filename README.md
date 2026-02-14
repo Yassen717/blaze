@@ -154,10 +154,20 @@ blaze-terminal/
 │   └── branding/          # Brand assets
 ├── 📁 src/
 │   ├── 📄 main.rs         # Application entry point
-│   ├── 📄 state.rs        # Terminal state management
 │   ├── 📁 components/     # Reusable UI components
 │   │   ├── mod.rs
-│   │   └── terminal.rs    # Terminal component (desktop & web)
+│   ├── 📁 terminal/       # Terminal domain module
+│   │   ├── mod.rs
+│   │   ├── components.rs  # Desktop/Web terminal UI components
+│   │   ├── state.rs       # Terminal line state types
+│   │   ├── utils.rs       # Shared helpers (arg parsing, line trimming)
+│   │   └── 📁 commands/
+│   │       ├── mod.rs
+│   │   │   ├── 📁 desktop/
+│   │   │   │   ├── mod.rs # Desktop command dispatcher
+│   │   │   │   ├── fs.rs  # Filesystem command handlers
+│   │   │   │   └── process.rs # Process/network command handlers
+│   │       └── web.rs     # Web demo command simulation logic
 │   └── 📁 views/          # Web pages and routing
 │       ├── mod.rs         # Route definitions
 │       ├── home.rs        # Landing page
