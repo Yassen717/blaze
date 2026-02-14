@@ -226,7 +226,12 @@ The project uses Cargo features to control platform-specific code:
 default = ["desktop"]
 web = ["dioxus/web"]           # Web platform support
 desktop = ["dioxus/desktop"]   # Desktop platform support
+safe-mode = []                  # Disable destructive commands (rm/del/mv/mkdir)
 ```
+
+### Windows Process Behavior
+
+On Windows desktop builds, external commands are launched with `CREATE_NO_WINDOW` to avoid flashing console popups for short-lived commands (for example `curl`, `wget`, and `ipconfig`). Output is still captured and shown inside Blaze.
 
 ### Building for Different Platforms
 
