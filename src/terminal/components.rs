@@ -76,10 +76,14 @@ pub fn DesktopTerminal() -> Element {
                         "  pwd             Print working directory",
                         "  exit            Exit the terminal",
                         "",
-                        #[cfg(target_os = "windows")]
+                        #[cfg(all(target_os = "windows", not(feature = "safe-mode")))]
                         "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat/type, grep, curl, wget, ipconfig (ip).",
-                        #[cfg(not(target_os = "windows"))]
+                        #[cfg(all(target_os = "windows", feature = "safe-mode"))]
+                        "Allowed system commands (safe mode): ls, dir, echo, vim, whoami, cat/type, grep, curl, wget, ipconfig (ip).",
+                        #[cfg(all(not(target_os = "windows"), not(feature = "safe-mode")))]
                         "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat, grep, curl, wget, ifconfig, ip.",
+                        #[cfg(all(not(target_os = "windows"), feature = "safe-mode"))]
+                        "Allowed system commands (safe mode): ls, dir, echo, vim, whoami, cat, grep, curl, wget, ifconfig, ip.",
                     ];
                     let mut v = lines.write();
                     for h in help {
@@ -91,7 +95,8 @@ pub fn DesktopTerminal() -> Element {
                     return;
                 }
                 "exit" => {
-                    std::process::exit(0);
+                    dioxus::desktop::window().close();
+                    return;
                 }
                 "cd" => {
                     let rest = args.iter().skip(1).cloned().collect::<Vec<_>>().join(" ");

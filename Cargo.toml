@@ -16,3 +16,4 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 default = ["desktop"]
 web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
+safe-mode = []

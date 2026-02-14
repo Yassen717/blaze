@@ -6,7 +6,8 @@ use crate::terminal::state::{LineType, TerminalLine};
 #[cfg(all(
     feature = "desktop",
     not(target_arch = "wasm32"),
-    target_os = "windows"
+    target_os = "windows",
+    not(feature = "safe-mode")
 ))]
 const ALLOWED_EXTERNAL: [&str; 16] = [
     "ls",
@@ -30,7 +31,29 @@ const ALLOWED_EXTERNAL: [&str; 16] = [
 #[cfg(all(
     feature = "desktop",
     not(target_arch = "wasm32"),
-    not(target_os = "windows")
+    target_os = "windows",
+    feature = "safe-mode"
+))]
+const ALLOWED_EXTERNAL: [&str; 12] = [
+    "ls",
+    "dir",
+    "echo",
+    "vim",
+    "whoami",
+    "cat",
+    "type",
+    "grep",
+    "curl",
+    "wget",
+    "ipconfig",
+    "ip",
+];
+
+#[cfg(all(
+    feature = "desktop",
+    not(target_arch = "wasm32"),
+    not(target_os = "windows"),
+    not(feature = "safe-mode")
 ))]
 const ALLOWED_EXTERNAL: [&str; 15] = [
     "ls",
@@ -41,6 +64,26 @@ const ALLOWED_EXTERNAL: [&str; 15] = [
     "rm",
     "del",
     "mv",
+    "whoami",
+    "cat",
+    "grep",
+    "curl",
+    "wget",
+    "ifconfig",
+    "ip",
+];
+
+#[cfg(all(
+    feature = "desktop",
+    not(target_arch = "wasm32"),
+    not(target_os = "windows"),
+    feature = "safe-mode"
+))]
+const ALLOWED_EXTERNAL: [&str; 11] = [
+    "ls",
+    "dir",
+    "echo",
+    "vim",
     "whoami",
     "cat",
     "grep",
