@@ -66,3 +66,14 @@ pub fn resolve_in_dir(cwd: &str, target: &str) -> std::path::PathBuf {
         std::path::Path::new(cwd).join(target_path)
     }
 }
+
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32"), target_os = "windows"))]
+pub fn windows_hidden_command(program: &str, cwd: &str) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+    let mut command = std::process::Command::new(program);
+    command.current_dir(cwd).creation_flags(CREATE_NO_WINDOW);
+    command
+}

@@ -4,6 +4,8 @@ use dioxus::prelude::*;
 #[cfg(not(target_os = "windows"))]
 use crate::terminal::utils::push_line_trim;
 #[cfg(target_os = "windows")]
+use crate::terminal::utils::windows_hidden_command;
+#[cfg(target_os = "windows")]
 use crate::terminal::state::LineType;
 use crate::terminal::state::TerminalLine;
 
@@ -51,9 +53,7 @@ pub fn handle_windows_process_command(
 
 #[cfg(target_os = "windows")]
 fn run_external_command_lines(cwd: &str, program: &str, args: &[String]) -> Vec<TerminalLine> {
-    use std::process::Command;
-
-    let output = Command::new(program).args(args).current_dir(cwd).output();
+    let output = windows_hidden_command(program, cwd).args(args).output();
 
     let output = match output {
         Ok(o) => o,
