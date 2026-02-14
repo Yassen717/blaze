@@ -3,11 +3,11 @@
 use dioxus::prelude::*;
 
 mod components;
-mod state;
+mod terminal;
 mod views;
 
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
-use components::terminal::DesktopTerminal;
+use terminal::DesktopTerminal;
 
 #[cfg(not(feature = "desktop"))]
 use views::Route;

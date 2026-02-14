@@ -1,5 +1,3 @@
-pub mod terminal;
-
 #[cfg(not(feature = "desktop"))]
 use dioxus::prelude::*;
 
