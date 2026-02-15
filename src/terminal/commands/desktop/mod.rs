@@ -3,98 +3,17 @@ mod process;
 
 use crate::terminal::state::{LineType, TerminalLine};
 
-#[cfg(all(
-    feature = "desktop",
-    not(target_arch = "wasm32"),
-    target_os = "windows",
-    not(feature = "safe-mode")
-))]
-const ALLOWED_EXTERNAL: [&str; 16] = [
-    "ls",
-    "dir",
-    "echo",
-    "vim",
-    "mkdir",
-    "rm",
-    "del",
-    "mv",
-    "whoami",
-    "cat",
-    "type",
-    "grep",
-    "curl",
-    "wget",
-    "ipconfig",
-    "ip",
-];
-
-#[cfg(all(
-    feature = "desktop",
-    not(target_arch = "wasm32"),
-    target_os = "windows",
-    feature = "safe-mode"
-))]
-const ALLOWED_EXTERNAL: [&str; 12] = [
-    "ls",
-    "dir",
-    "echo",
-    "vim",
-    "whoami",
-    "cat",
-    "type",
-    "grep",
-    "curl",
-    "wget",
-    "ipconfig",
-    "ip",
-];
-
-#[cfg(all(
-    feature = "desktop",
-    not(target_arch = "wasm32"),
-    not(target_os = "windows"),
-    not(feature = "safe-mode")
-))]
-const ALLOWED_EXTERNAL: [&str; 15] = [
-    "ls",
-    "dir",
-    "echo",
-    "vim",
-    "mkdir",
-    "rm",
-    "del",
-    "mv",
-    "whoami",
-    "cat",
-    "grep",
-    "curl",
-    "wget",
-    "ifconfig",
-    "ip",
-];
-
-#[cfg(all(
-    feature = "desktop",
-    not(target_arch = "wasm32"),
-    not(target_os = "windows"),
-    feature = "safe-mode"
-))]
-const ALLOWED_EXTERNAL: [&str; 11] = [
-    "ls",
-    "dir",
-    "echo",
-    "vim",
-    "whoami",
-    "cat",
-    "grep",
-    "curl",
-    "wget",
-    "ifconfig",
-    "ip",
-];
-
 pub fn is_allowed_external(command: &str) -> bool {
-    ALLOWED_EXTERNAL.contains(&command)
+    match command {
+        "ls" | "dir" | "echo" | "vim" | "whoami" | "cat" | "grep" | "curl" | "wget" | "ip" => true,
+        #[cfg(target_os = "windows")]
+        "type" | "ipconfig" => true,
+        #[cfg(not(target_os = "windows"))]
+        "ifconfig" => true,
+        #[cfg(all(not(feature = "safe-mode"), feature = "unsafe-fs"))]
+        "mkdir" | "rm" | "del" | "mv" => true,
+        _ => false,
+    }
 }
 
 #[cfg(target_os = "windows")]

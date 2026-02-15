@@ -22,17 +22,27 @@ pub fn handle_windows_fs_command(
                     line_type: LineType::Error,
                 }]);
             }
-            let path = resolve_in_dir(cwd, &argv[1]);
-            Some(match std::fs::create_dir_all(&path) {
-                Ok(()) => vec![TerminalLine {
-                    content: "Directory created".into(),
-                    line_type: LineType::Output,
-                }],
-                Err(e) => vec![TerminalLine {
-                    content: format!("mkdir: {}", e),
+            #[cfg(all(not(feature = "safe-mode"), feature = "unsafe-fs"))]
+            {
+                let path = resolve_in_dir(cwd, &argv[1]);
+                Some(match std::fs::create_dir_all(&path) {
+                    Ok(()) => vec![TerminalLine {
+                        content: "Directory created".into(),
+                        line_type: LineType::Output,
+                    }],
+                    Err(e) => vec![TerminalLine {
+                        content: format!("mkdir: {}", e),
+                        line_type: LineType::Error,
+                    }],
+                })
+            }
+            #[cfg(not(all(not(feature = "safe-mode"), feature = "unsafe-fs")))]
+            {
+                Some(vec![TerminalLine {
+                    content: "mkdir is disabled in this build (enable feature 'unsafe-fs').".into(),
                     line_type: LineType::Error,
-                }],
-            })
+                }])
+            }
         }
         "rm" | "del" => {
             if argv.len() < 2 {
@@ -41,45 +51,55 @@ pub fn handle_windows_fs_command(
                     line_type: LineType::Error,
                 }]);
             }
-            let mut recursive = false;
-            let mut idx = 1;
-            if argv.get(1).map(|s| s.as_str()) == Some("-r")
-                || argv.get(1).map(|s| s.as_str()) == Some("-R")
+            #[cfg(all(not(feature = "safe-mode"), feature = "unsafe-fs"))]
             {
-                recursive = true;
-                idx = 2;
-            }
-            let Some(target) = argv.get(idx) else {
-                return Some(vec![TerminalLine {
-                    content: "Usage: rm [-r] <path>".into(),
-                    line_type: LineType::Error,
-                }]);
-            };
-            let path = resolve_in_dir(cwd, target);
-            let result = match std::fs::metadata(&path) {
-                Ok(m) if m.is_dir() => {
-                    if recursive {
-                        std::fs::remove_dir_all(&path)
-                    } else {
-                        Err(std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            "Is a directory (use rm -r)",
-                        ))
-                    }
+                let mut recursive = false;
+                let mut idx = 1;
+                if argv.get(1).map(|s| s.as_str()) == Some("-r")
+                    || argv.get(1).map(|s| s.as_str()) == Some("-R")
+                {
+                    recursive = true;
+                    idx = 2;
                 }
-                Ok(_) => std::fs::remove_file(&path),
-                Err(e) => Err(e),
-            };
-            Some(match result {
-                Ok(()) => vec![TerminalLine {
-                    content: "Deleted".into(),
-                    line_type: LineType::Output,
-                }],
-                Err(e) => vec![TerminalLine {
-                    content: format!("rm: {}", e),
+                let Some(target) = argv.get(idx) else {
+                    return Some(vec![TerminalLine {
+                        content: "Usage: rm [-r] <path>".into(),
+                        line_type: LineType::Error,
+                    }]);
+                };
+                let path = resolve_in_dir(cwd, target);
+                let result = match std::fs::metadata(&path) {
+                    Ok(m) if m.is_dir() => {
+                        if recursive {
+                            std::fs::remove_dir_all(&path)
+                        } else {
+                            Err(std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                "Is a directory (use rm -r)",
+                            ))
+                        }
+                    }
+                    Ok(_) => std::fs::remove_file(&path),
+                    Err(e) => Err(e),
+                };
+                Some(match result {
+                    Ok(()) => vec![TerminalLine {
+                        content: "Deleted".into(),
+                        line_type: LineType::Output,
+                    }],
+                    Err(e) => vec![TerminalLine {
+                        content: format!("rm: {}", e),
+                        line_type: LineType::Error,
+                    }],
+                })
+            }
+            #[cfg(not(all(not(feature = "safe-mode"), feature = "unsafe-fs")))]
+            {
+                Some(vec![TerminalLine {
+                    content: "rm/del is disabled in this build (enable feature 'unsafe-fs').".into(),
                     line_type: LineType::Error,
-                }],
-            })
+                }])
+            }
         }
         "mv" => {
             if argv.len() < 3 {
@@ -88,18 +108,28 @@ pub fn handle_windows_fs_command(
                     line_type: LineType::Error,
                 }]);
             }
-            let from = resolve_in_dir(cwd, &argv[1]);
-            let to = resolve_in_dir(cwd, &argv[2]);
-            Some(match std::fs::rename(&from, &to) {
-                Ok(()) => vec![TerminalLine {
-                    content: "Moved".into(),
-                    line_type: LineType::Output,
-                }],
-                Err(e) => vec![TerminalLine {
-                    content: format!("mv: {}", e),
+            #[cfg(all(not(feature = "safe-mode"), feature = "unsafe-fs"))]
+            {
+                let from = resolve_in_dir(cwd, &argv[1]);
+                let to = resolve_in_dir(cwd, &argv[2]);
+                Some(match std::fs::rename(&from, &to) {
+                    Ok(()) => vec![TerminalLine {
+                        content: "Moved".into(),
+                        line_type: LineType::Output,
+                    }],
+                    Err(e) => vec![TerminalLine {
+                        content: format!("mv: {}", e),
+                        line_type: LineType::Error,
+                    }],
+                })
+            }
+            #[cfg(not(all(not(feature = "safe-mode"), feature = "unsafe-fs")))]
+            {
+                Some(vec![TerminalLine {
+                    content: "mv is disabled in this build (enable feature 'unsafe-fs').".into(),
                     line_type: LineType::Error,
-                }],
-            })
+                }])
+            }
         }
         "cat" | "type" => {
             if argv.len() < 2 {
@@ -188,8 +218,9 @@ fn read_file_lines(path: &std::path::Path) -> Vec<TerminalLine> {
 
 #[cfg(target_os = "windows")]
 fn grep_file_lines(pattern: &str, path: &std::path::Path) -> Vec<TerminalLine> {
-    let content = match std::fs::read_to_string(path) {
-        Ok(c) => c,
+    const MAX_BYTES: usize = 1024 * 1024;
+    let bytes = match std::fs::read(path) {
+        Ok(b) => b,
         Err(e) => {
             return vec![TerminalLine {
                 content: format!("grep: {}", e),
@@ -197,6 +228,14 @@ fn grep_file_lines(pattern: &str, path: &std::path::Path) -> Vec<TerminalLine> {
             }]
         }
     };
+
+    let truncated = bytes.len() > MAX_BYTES;
+    let bytes = if truncated {
+        &bytes[..MAX_BYTES]
+    } else {
+        &bytes
+    };
+    let content = String::from_utf8_lossy(bytes);
 
     let mut out = Vec::new();
     for (idx, line) in content.lines().enumerate() {
@@ -206,6 +245,13 @@ fn grep_file_lines(pattern: &str, path: &std::path::Path) -> Vec<TerminalLine> {
                 line_type: LineType::Output,
             });
         }
+    }
+
+    if truncated {
+        out.push(TerminalLine {
+            content: "grep: file too large, searched only first 1 MiB".to_string(),
+            line_type: LineType::System,
+        });
     }
 
     if out.is_empty() {

@@ -76,14 +76,18 @@ pub fn DesktopTerminal() -> Element {
                         "  pwd             Print working directory",
                         "  exit            Exit the terminal",
                         "",
-                        #[cfg(all(target_os = "windows", not(feature = "safe-mode")))]
-                        "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat/type, grep, curl, wget, ipconfig (ip).",
                         #[cfg(all(target_os = "windows", feature = "safe-mode"))]
                         "Allowed system commands (safe mode): ls, dir, echo, vim, whoami, cat/type, grep, curl, wget, ipconfig (ip).",
-                        #[cfg(all(not(target_os = "windows"), not(feature = "safe-mode")))]
-                        "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat, grep, curl, wget, ifconfig, ip.",
+                        #[cfg(all(target_os = "windows", not(feature = "safe-mode"), not(feature = "unsafe-fs")))]
+                        "Allowed system commands: ls, dir, echo, vim, whoami, cat/type, grep, curl, wget, ipconfig (ip).",
+                        #[cfg(all(target_os = "windows", not(feature = "safe-mode"), feature = "unsafe-fs"))]
+                        "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat/type, grep, curl, wget, ipconfig (ip).",
                         #[cfg(all(not(target_os = "windows"), feature = "safe-mode"))]
                         "Allowed system commands (safe mode): ls, dir, echo, vim, whoami, cat, grep, curl, wget, ifconfig, ip.",
+                        #[cfg(all(not(target_os = "windows"), not(feature = "safe-mode"), not(feature = "unsafe-fs")))]
+                        "Allowed system commands: ls, dir, echo, vim, whoami, cat, grep, curl, wget, ifconfig, ip.",
+                        #[cfg(all(not(target_os = "windows"), not(feature = "safe-mode"), feature = "unsafe-fs"))]
+                        "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat, grep, curl, wget, ifconfig, ip.",
                     ];
                     let mut v = lines.write();
                     for h in help {

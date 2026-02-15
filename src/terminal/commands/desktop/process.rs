@@ -11,6 +11,8 @@ use crate::terminal::state::TerminalLine;
 
 #[cfg(all(feature = "desktop", target_os = "windows"))]
 const MAX_CMD_OUTPUT_BYTES: usize = 1024 * 1024;
+#[cfg(all(feature = "desktop", target_os = "windows"))]
+const MAX_CMD_RUNTIME: std::time::Duration = std::time::Duration::from_secs(15);
 
 #[cfg(target_os = "windows")]
 pub fn handle_windows_process_command(
@@ -53,9 +55,51 @@ pub fn handle_windows_process_command(
 
 #[cfg(target_os = "windows")]
 fn run_external_command_lines(cwd: &str, program: &str, args: &[String]) -> Vec<TerminalLine> {
-    let output = windows_hidden_command(program, cwd).args(args).output();
+    use std::process::Stdio;
+    use std::thread;
+    use std::time::Instant;
 
-    let output = match output {
+    let child = windows_hidden_command(program, cwd)
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn();
+
+    let mut child = match child {
+        Ok(c) => c,
+        Err(e) => {
+            return vec![TerminalLine {
+                content: format!("{}: {}", program, e),
+                line_type: LineType::Error,
+            }]
+        }
+    };
+
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {
+                if start.elapsed() >= MAX_CMD_RUNTIME {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return vec![TerminalLine {
+                        content: format!("{}: timed out after {}s", program, MAX_CMD_RUNTIME.as_secs()),
+                        line_type: LineType::Error,
+                    }];
+                }
+                thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(e) => {
+                return vec![TerminalLine {
+                    content: format!("{}: {}", program, e),
+                    line_type: LineType::Error,
+                }]
+            }
+        }
+    }
+
+    let output = match child.wait_with_output() {
         Ok(o) => o,
         Err(e) => {
             return vec![TerminalLine {
