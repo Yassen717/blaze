@@ -263,3 +263,60 @@ fn grep_file_lines(pattern: &str, path: &std::path::Path) -> Vec<TerminalLine> {
 
     out
 }
+
+#[cfg(all(test, target_os = "windows"))]
+mod tests {
+    use super::grep_file_lines;
+    use crate::terminal::state::LineType;
+
+    fn temp_test_file_path(name: &str) -> std::path::PathBuf {
+        let mut path = std::env::temp_dir();
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        path.push(format!("blaze_test_{}_{}.txt", name, nanos));
+        path
+    }
+
+    #[test]
+    fn grep_returns_matching_lines_with_line_numbers() {
+        let path = temp_test_file_path("grep_match");
+        std::fs::write(&path, "alpha\nbeta\nalpha again\n").expect("write test file");
+
+        let lines = grep_file_lines("alpha", &path);
+
+        assert!(lines.iter().any(|l| l.content == "1:alpha" && l.line_type == LineType::Output));
+        assert!(lines.iter().any(|l| l.content == "3:alpha again" && l.line_type == LineType::Output));
+
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn grep_reports_no_matches_when_pattern_absent() {
+        let path = temp_test_file_path("grep_no_match");
+        std::fs::write(&path, "alpha\nbeta\n").expect("write test file");
+
+        let lines = grep_file_lines("zzz", &path);
+
+        assert!(lines.iter().any(|l| l.content == "(no matches)" && l.line_type == LineType::Output));
+
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn grep_truncates_large_files_and_reports_notice() {
+        let path = temp_test_file_path("grep_truncate");
+        let content = "A".repeat((1024 * 1024) + 64);
+        std::fs::write(&path, content).expect("write test file");
+
+        let lines = grep_file_lines("nomatch", &path);
+
+        assert!(
+            lines.iter().any(|l| l.content.contains("searched only first 1 MiB") && l.line_type == LineType::System),
+            "expected truncation notice in output"
+        );
+
+        let _ = std::fs::remove_file(path);
+    }
+}
