@@ -98,7 +98,7 @@ dx serve --platform desktop
 
 The desktop app provides a full terminal experience with:
 - Real command execution
-- File system operations
+- Read-only file system operations by default
 - Custom window controls (minimize, maximize, close)
 - Complete terminal functionality
 
@@ -134,15 +134,22 @@ The web version includes:
 | `echo <text>` | Print text to terminal | `echo "Hello World"` |
 | `curl <url> ...` | Fetch a URL (requires `curl` installed) | `curl https://example.com` |
 | `wget <url> ...` | Fetch a URL (requires `wget` installed) | `wget https://example.com` |
-| `mkdir <name>` | Create directory | `mkdir new-folder` |
-| `rm` / `del <path>` | Delete file or directory | `rm file.txt` |
-| `mv <from> <to>` | Move or rename | `mv old.txt new.txt` |
 | `cat` / `type <file>` | Display file contents (`type` is Windows-only alias) | `cat readme.txt` |
 | `grep <pattern> <file>` | Search text in file | `grep "TODO" notes.txt` |
 | `ipconfig` / `ip` | Show network config (Windows) | `ipconfig` |
 | `ifconfig` / `ip` | Show network config (Linux/macOS) | `ifconfig` |
 | `vim <file>` | Not supported (interactive TTY required) | `vim config.txt` |
 | `whoami` | Display current user | `whoami` |
+
+### Optional Mutating Commands (Desktop + `unsafe-fs`)
+
+These commands are intentionally disabled by default and require the `unsafe-fs` feature.
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `mkdir <name>` | Create directory | `mkdir new-folder` |
+| `rm` / `del <path>` | Delete file or directory | `rm file.txt` |
+| `mv <from> <to>` | Move or rename | `mv old.txt new.txt` |
 
 ## 🏗️ Architecture
 
@@ -227,6 +234,7 @@ default = ["desktop"]
 web = ["dioxus/web"]           # Web platform support
 desktop = ["dioxus/desktop"]   # Desktop platform support
 safe-mode = []                  # Disable destructive commands (rm/del/mv/mkdir)
+unsafe-fs = []                  # Opt-in mutating filesystem commands (mkdir/rm/del/mv)
 ```
 
 ### Windows Process Behavior
