@@ -77,3 +77,32 @@ pub fn windows_hidden_command(program: &str, cwd: &str) -> std::process::Command
     command.current_dir(cwd).creation_flags(CREATE_NO_WINDOW);
     command
 }
+
+#[cfg(all(test, feature = "desktop", not(target_arch = "wasm32")))]
+mod tests {
+    use super::split_args;
+
+    #[test]
+    fn split_args_handles_quoted_segments() {
+        let args = split_args("echo \"hello world\" test");
+        assert_eq!(args, vec!["echo", "hello world", "test"]);
+    }
+
+    #[test]
+    fn split_args_handles_escaped_quote_inside_quotes() {
+        let args = split_args("echo \"he\\\"llo\"");
+        assert_eq!(args, vec!["echo", "he\"llo"]);
+    }
+
+    #[test]
+    fn split_args_preserves_shell_metacharacters_as_literals() {
+        let args = split_args("echo hello && rm file.txt");
+        assert_eq!(args, vec!["echo", "hello", "&&", "rm", "file.txt"]);
+    }
+
+    #[test]
+    fn split_args_collapses_whitespace_between_args() {
+        let args = split_args("  grep    TODO   file.rs  ");
+        assert_eq!(args, vec!["grep", "TODO", "file.rs"]);
+    }
+}
