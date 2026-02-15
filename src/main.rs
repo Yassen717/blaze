@@ -40,15 +40,18 @@ compile_error!(
 fn main() {
     use dioxus::desktop::{Config, WindowBuilder, LogicalSize, tao::window::Icon};
 
-    // Load and decode the icon PNG
-    let icon = {
-        let img = image::load_from_memory(ICON_BYTES)
-            .expect("Failed to load icon")
-            .into_rgba8();
-        let (width, height) = img.dimensions();
-        Icon::from_rgba(img.into_raw(), width, height)
-            .expect("Failed to create icon")
-    };
+    // Load and decode the icon PNG, but never crash startup if icon decode fails.
+    let icon = image::load_from_memory(ICON_BYTES)
+        .ok()
+        .and_then(|img| {
+            let img = img.into_rgba8();
+            let (width, height) = img.dimensions();
+            Icon::from_rgba(img.into_raw(), width, height).ok()
+        });
+
+    if icon.is_none() {
+        eprintln!("Warning: failed to load window icon; launching without icon.");
+    }
 
     dioxus::LaunchBuilder::desktop()
         .with_cfg(
@@ -59,7 +62,7 @@ fn main() {
                         .with_decorations(false)
                         .with_inner_size(LogicalSize::new(1100.0, 700.0))
                         .with_min_inner_size(LogicalSize::new(600.0, 400.0))
-                        .with_window_icon(Some(icon))
+                        .with_window_icon(icon)
                 )
                 .with_background_color((5, 6, 7, 255))
                 .with_disable_context_menu(true)
