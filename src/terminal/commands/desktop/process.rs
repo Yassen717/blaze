@@ -11,8 +11,16 @@ use crate::terminal::state::TerminalLine;
 
 #[cfg(all(feature = "desktop", target_os = "windows"))]
 const MAX_CMD_OUTPUT_BYTES: usize = 1024 * 1024;
-#[cfg(all(feature = "desktop", target_os = "windows"))]
-const MAX_CMD_RUNTIME: std::time::Duration = std::time::Duration::from_secs(15);
+
+#[cfg(all(feature = "desktop", target_os = "windows", not(test)))]
+fn max_cmd_runtime() -> std::time::Duration {
+    std::time::Duration::from_secs(15)
+}
+
+#[cfg(all(feature = "desktop", target_os = "windows", test))]
+fn max_cmd_runtime() -> std::time::Duration {
+    std::time::Duration::from_millis(250)
+}
 
 #[cfg(target_os = "windows")]
 pub fn handle_windows_process_command(
@@ -76,15 +84,16 @@ fn run_external_command_lines(cwd: &str, program: &str, args: &[String]) -> Vec<
     };
 
     let start = Instant::now();
+    let max_runtime = max_cmd_runtime();
     loop {
         match child.try_wait() {
             Ok(Some(_)) => break,
             Ok(None) => {
-                if start.elapsed() >= MAX_CMD_RUNTIME {
+                if start.elapsed() >= max_runtime {
                     let _ = child.kill();
                     let _ = child.wait();
                     return vec![TerminalLine {
-                        content: format!("{}: timed out after {}s", program, MAX_CMD_RUNTIME.as_secs()),
+                        content: format!("{}: timed out after {}s", program, max_runtime.as_secs()),
                         line_type: LineType::Error,
                     }];
                 }
@@ -212,5 +221,30 @@ pub async fn stream_unix_command(
                 },
             );
         }
+    }
+}
+
+#[cfg(all(test, target_os = "windows", feature = "desktop"))]
+mod tests {
+    use super::run_external_command_lines;
+    use crate::terminal::state::LineType;
+
+    #[test]
+    fn external_command_times_out_and_reports_error() {
+        let cwd = std::env::current_dir().expect("current dir");
+        let cwd = cwd.to_string_lossy().to_string();
+
+        let args = vec![
+            "-NoProfile".to_string(),
+            "-Command".to_string(),
+            "Start-Sleep -Seconds 2".to_string(),
+        ];
+
+        let lines = run_external_command_lines(&cwd, "powershell", &args);
+
+        assert!(
+            lines.iter().any(|l| l.content.contains("timed out after") && l.line_type == LineType::Error),
+            "expected timeout error line"
+        );
     }
 }

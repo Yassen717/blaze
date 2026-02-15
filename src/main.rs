@@ -27,6 +27,15 @@ const FAVICON_48: Asset = asset!("/assets/branding/favicon-48-modified.png");
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 const ICON_BYTES: &[u8] = include_bytes!("../assets/branding/favicon-48-modified.png");
 
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
+fn decode_window_icon(bytes: &[u8]) -> Option<dioxus::desktop::tao::window::Icon> {
+    image::load_from_memory(bytes).ok().and_then(|img| {
+        let img = img.into_rgba8();
+        let (width, height) = img.dimensions();
+        dioxus::desktop::tao::window::Icon::from_rgba(img.into_raw(), width, height).ok()
+    })
+}
+
 // Provide a clear error if someone tries to build the desktop feature for wasm.
 #[cfg(all(feature = "desktop", target_arch = "wasm32"))]
 compile_error!(
@@ -38,16 +47,10 @@ compile_error!(
 
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 fn main() {
-    use dioxus::desktop::{Config, WindowBuilder, LogicalSize, tao::window::Icon};
+    use dioxus::desktop::{Config, LogicalSize, WindowBuilder};
 
     // Load and decode the icon PNG, but never crash startup if icon decode fails.
-    let icon = image::load_from_memory(ICON_BYTES)
-        .ok()
-        .and_then(|img| {
-            let img = img.into_rgba8();
-            let (width, height) = img.dimensions();
-            Icon::from_rgba(img.into_raw(), width, height).ok()
-        });
+    let icon = decode_window_icon(ICON_BYTES);
 
     if icon.is_none() {
         eprintln!("Warning: failed to load window icon; launching without icon.");
@@ -68,6 +71,17 @@ fn main() {
                 .with_disable_context_menu(true)
         )
         .launch(App);
+}
+
+#[cfg(all(test, feature = "desktop", not(target_arch = "wasm32")))]
+mod tests {
+    use super::decode_window_icon;
+
+    #[test]
+    fn decode_window_icon_returns_none_for_invalid_bytes() {
+        let invalid = [0x00_u8, 0x01, 0x02, 0x03, 0x04];
+        assert!(decode_window_icon(&invalid).is_none());
+    }
 }
 
 #[cfg(not(feature = "desktop"))]
