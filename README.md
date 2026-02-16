@@ -64,6 +64,42 @@ Blaze Terminal is a high-performance, cross-platform terminal emulator that comb
 
 ## 📦 Installation
 
+### Download from GitHub Releases (v0.1.1)
+
+If you just want to use Blaze (no source build required), download the latest packaged binary from **GitHub Releases**.
+
+1. Open your repository **Releases** page.
+2. Select release tag **`v0.1.1`**.
+3. Download the asset for your platform.
+4. Extract/install and launch `blaze`.
+
+Direct download page:
+
+https://github.com/Yassen717/blaze/releases/tag/v0.1.1
+
+### Publishing v0.1.1 (Maintainers)
+
+Use this quick flow to publish `blaze` **0.1.1**:
+
+```bash
+# 1) Ensure version is correct
+# Cargo.toml -> version = "0.1.1"
+
+# 2) Build release artifact(s)
+dx build --platform desktop --release
+
+# 3) Tag and push
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+Then create a GitHub Release for tag `v0.1.1` and upload the generated desktop artifacts from your release output.
+
+Project packaging is configured to emit release artifacts under:
+
+- `target/packager`
+- `target/dx/blaze/release/windows/app`
+
 ### Prerequisites
 
 - [Rust](https://rustup.rs/) (latest stable)
