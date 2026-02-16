@@ -20,7 +20,7 @@ pub fn DesktopTerminal() -> Element {
     let mut lines = use_signal(|| {
         vec![
             TerminalLine {
-                content: "⚡ Blaze Terminal v0.1.0".into(),
+                content: "⚡ Blaze Terminal v0.1.1".into(),
                 line_type: LineType::System,
             },
             TerminalLine {
@@ -322,7 +322,7 @@ pub fn WebTerminalDemo() -> Element {
     let lines = use_signal(|| {
         vec![
             TerminalLine {
-                content: "⚡ Blaze Terminal v0.1.0 (Web Demo)".into(),
+                content: "⚡ Blaze Terminal v0.1.1 (Web Demo)".into(),
                 line_type: LineType::System,
             },
             TerminalLine {
