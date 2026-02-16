@@ -1,8 +1,9 @@
 [package]
 name = "blaze"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Yassen717 <EngYassenIbrahim@gmail.com>"]
 edition = "2021"
+build = "build.rs"
 description = "A blazingly fast terminal emulator built with Rust"
 
 [dependencies]
@@ -12,9 +13,35 @@ dioxus = { version = "0.7.1", features = ["router"] }
 tokio = { version = "1", features = ["process", "io-util", "sync", "rt"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
 
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+image = { version = "0.25", default-features = false, features = ["png", "ico"] }
+ico = "0.4"
+
 [features]
 default = ["desktop"]
 web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 safe-mode = []
 unsafe-fs = []
+
+[package.metadata.packager]
+product-name = "Blaze Terminal"
+identifier = "com.blaze.terminal"
+publisher = "Blaze"
+description = "A blazingly fast, modern terminal emulator built with Rust"
+homepage = "https://github.com/your-username/blaze-terminal"
+icons = ["assets/branding/blaze.ico"]
+resources = [
+	{ src = "target/dx/blaze/release/windows/app/assets", target = "assets" },
+]
+before-packaging-command = "dx build --platform desktop --release"
+formats = ["wix"]
+out-dir = "target/packager"
+binaries-dir = "target/dx/blaze/release/windows/app"
+binaries = [
+	{ path = "blaze", main = true },
+]
+
+[package.metadata.packager.wix]
+languages = ["en-US"]
