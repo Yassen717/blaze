@@ -28,6 +28,24 @@ const FAVICON_48: Asset = asset!("/assets/branding/favicon-48-modified.png");
 const ICON_BYTES: &[u8] = include_bytes!("../assets/branding/favicon-48-modified.png");
 
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
+fn desktop_resource_dir() -> std::path::PathBuf {
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|p| p.to_path_buf()))
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_default()
+}
+
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32"), target_os = "windows"))]
+fn windows_data_dir() -> std::path::PathBuf {
+    std::env::var_os("LOCALAPPDATA")
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_default()
+        .join("Blaze Terminal")
+}
+
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 fn decode_window_icon(bytes: &[u8]) -> Option<dioxus::desktop::tao::window::Icon> {
     image::load_from_memory(bytes).ok().and_then(|img| {
         let img = img.into_rgba8();
@@ -56,21 +74,25 @@ fn main() {
         eprintln!("Warning: failed to load window icon; launching without icon.");
     }
 
-    dioxus::LaunchBuilder::desktop()
-        .with_cfg(
-            Config::new()
-                .with_window(
-                    WindowBuilder::new()
-                        .with_title("Blaze Terminal")
-                        .with_decorations(false)
-                        .with_inner_size(LogicalSize::new(1100.0, 700.0))
-                        .with_min_inner_size(LogicalSize::new(600.0, 400.0))
-                        .with_window_icon(icon)
-                )
-                .with_background_color((5, 6, 7, 255))
-                .with_disable_context_menu(true)
+    let mut cfg = Config::new()
+        .with_window(
+            WindowBuilder::new()
+                .with_title("Blaze Terminal")
+                .with_decorations(false)
+                .with_inner_size(LogicalSize::new(1100.0, 700.0))
+                .with_min_inner_size(LogicalSize::new(600.0, 400.0))
+                .with_window_icon(icon)
         )
-        .launch(App);
+        .with_resource_directory(desktop_resource_dir())
+        .with_background_color((5, 6, 7, 255))
+        .with_disable_context_menu(true);
+
+    #[cfg(target_os = "windows")]
+    {
+        cfg = cfg.with_data_directory(windows_data_dir());
+    }
+
+    dioxus::LaunchBuilder::desktop().with_cfg(cfg).launch(App);
 }
 
 #[cfg(all(test, feature = "desktop", not(target_arch = "wasm32")))]
