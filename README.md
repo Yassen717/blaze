@@ -303,8 +303,8 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ## 🐛 Issues & Support
 
-- 🐛 [Report bugs](https://github.com/your-username/blaze-terminal/issues)
-- 💡 [Request features](https://github.com/your-username/blaze-terminal/issues)
+- 🐛 [Report bugs](https://github.com/Yassen717/blaze/issues)
+- 💡 [Request features](https://github.com/Yassen717/blaze/issues)
 - ❓ [Ask questions](https://github.com/your-username/blaze-terminal/discussions)
 
 ## 📄 License
@@ -323,7 +323,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ and ⚡ by the Blaze Terminal team**
 
-[⭐ Star us on GitHub](https://github.com/your-username/blaze-terminal) • [🌐 Try the Web Demo](https://your-demo-url.com) • [📖 Documentation](https://docs.blaze-terminal.com)
+[⭐ Star us on GitHub](https://github.com/Yassen717/blaze) • [🌐 Try the Web Demo](https://your-demo-url.com) • [📖 Documentation](https://docs.blaze-terminal.com)
 
 </div>
 
