@@ -18,6 +18,7 @@ pub fn Home() -> Element {
             }
             div { class: "hero-buttons",
                 Link { to: Route::DemoPage {}, class: "btn-primary", "Try the Demo" }
+                Link { to: Route::DownloadPage {}, class: "btn-download-hero", "⬇  Download" }
                 Link { to: Route::CommandsPage {}, class: "btn-secondary", "View Commands →" }
             }
         }

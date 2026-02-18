@@ -8,6 +8,8 @@ pub mod commands;
 #[cfg(not(feature = "desktop"))]
 pub mod demo;
 #[cfg(not(feature = "desktop"))]
+pub mod download;
+#[cfg(not(feature = "desktop"))]
 pub mod not_found;
 
 #[cfg(not(feature = "desktop"))]
@@ -21,6 +23,8 @@ pub enum Route {
         CommandsPage {},
         #[route("/demo")]
         DemoPage {},
+        #[route("/download")]
+        DownloadPage {},
 
     // Catch-all route for 404s (must be last)
     #[route("/:..segments")]
@@ -39,6 +43,7 @@ pub fn WebLayout() -> Element {
                     Link { to: Route::Home {}, "Home" }
                     Link { to: Route::CommandsPage {}, "Commands" }
                     Link { to: Route::DemoPage {}, "Demo" }
+                    Link { to: Route::DownloadPage {}, "Download" }
                 }
             }
         }
@@ -55,6 +60,8 @@ pub fn WebLayout() -> Element {
 pub use commands::CommandsPage;
 #[cfg(not(feature = "desktop"))]
 pub use demo::DemoPage;
+#[cfg(not(feature = "desktop"))]
+pub use download::DownloadPage;
 #[cfg(not(feature = "desktop"))]
 pub use home::Home;
 #[cfg(not(feature = "desktop"))]
