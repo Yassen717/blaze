@@ -25,16 +25,22 @@ fn generate_multi_size_ico() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() {
-    #[cfg(target_os = "windows")]
-    {
-        if let Err(err) = generate_multi_size_ico() {
-            panic!("failed to generate multi-size .ico: {err}");
-        }
+    // Guard on the *target* OS, not the host OS.
+    // CARGO_CFG_TARGET_OS is set by Cargo and reflects the compilation target,
+    // so cross-compiling to wasm32 on a Windows host won't trigger this block.
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    if target_os == "windows" {
+        #[cfg(target_os = "windows")]
+        {
+            if let Err(err) = generate_multi_size_ico() {
+                panic!("failed to generate multi-size .ico: {err}");
+            }
 
-        let mut res = winres::WindowsResource::new();
-        res.set_icon("assets/branding/blaze.ico");
-        if let Err(err) = res.compile() {
-            panic!("failed to compile Windows resources: {err}");
+            let mut res = winres::WindowsResource::new();
+            res.set_icon("assets/branding/blaze.ico");
+            if let Err(err) = res.compile() {
+                panic!("failed to compile Windows resources: {err}");
+            }
         }
     }
 }
