@@ -217,7 +217,8 @@ a {
     margin-right: 2px;
 }
 
-.terminal-fullscreen .terminal-input {
+.terminal-fullscreen .terminal-input,
+.demo-terminal .terminal-input {
     flex: 1;
     background: transparent;
     border: none;
@@ -225,6 +226,7 @@ a {
     font-family: inherit;
     font-size: 14px;
     outline: none;
+    box-shadow: none;
     caret-color: #5dff9a;
     line-height: 1.7;
 }
@@ -345,23 +347,6 @@ a {
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(255, 107, 53, 0.35);
-}
-
-/* Hero download button — green accent to stand out from btn-primary */
-.btn-download-hero {
-    display: inline-block;
-    padding: 14px 32px;
-    background: linear-gradient(135deg, #238636, #2ea043);
-    color: #fff;
-    font-weight: 700;
-    font-size: 1rem;
-    border-radius: 10px;
-    transition: transform 0.2s, box-shadow 0.2s;
-    cursor: pointer;
-}
-.btn-download-hero:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(46, 160, 67, 0.40);
 }
 
 .btn-secondary {
