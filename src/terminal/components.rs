@@ -13,6 +13,8 @@ use crate::terminal::state::{LineType, TerminalLine};
 use crate::terminal::utils::split_args;
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 use crate::terminal::utils::push_line_trim;
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
+use crate::terminal::utils::{load_history, append_history, tab_complete};
 
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 #[component]
@@ -35,11 +37,37 @@ pub fn DesktopTerminal() -> Element {
     });
     let mut input_value = use_signal(String::new);
     let mut current_dir = use_signal(|| std::env::current_dir().unwrap_or_default().display().to_string());
-    let mut cmd_history = use_signal(Vec::<String>::new);
+    let mut cmd_history = use_signal(|| load_history(1000));
     let mut history_idx = use_signal(|| -1i32);
+    // Tracks consecutive Tab presses so we cycle through completions.
+    let mut tab_state = use_signal(|| 0usize);
+    // Stores the input that was typed before Tab was first pressed (the "stub").
+    let mut tab_stub = use_signal(String::new);
 
     let handle_key = move |e: KeyboardEvent| match e.key() {
+        Key::Tab => {
+            e.prevent_default();
+            let current_input = input_value();
+            // On the first Tab press, record the stub; on subsequent presses reuse it.
+            let stub = if tab_state() == 0 {
+                tab_stub.set(current_input.clone());
+                current_input.clone()
+            } else {
+                tab_stub()
+            };
+            let cwd = current_dir();
+            let state = tab_state();
+            if let Some(completed) = tab_complete(&stub, &cwd, state) {
+                input_value.set(completed);
+                tab_state.set(state + 1);
+            }
+            return;
+        }
         Key::Enter => {
+            // Reset tab cycling on any non-Tab key.
+            tab_state.set(0);
+            tab_stub.set(String::new());
+
             let cmd = input_value().trim().to_string();
             if cmd.is_empty() {
                 return;
@@ -47,6 +75,7 @@ pub fn DesktopTerminal() -> Element {
             let cwd = current_dir().clone();
 
             cmd_history.write().push(cmd.clone());
+            append_history(&cmd);
             history_idx.set(-1);
 
             push_line_trim(
@@ -215,6 +244,8 @@ pub fn DesktopTerminal() -> Element {
             }
         }
         Key::ArrowUp => {
+            tab_state.set(0);
+            tab_stub.set(String::new());
             let history = cmd_history();
             if history.is_empty() {
                 return;
@@ -229,6 +260,8 @@ pub fn DesktopTerminal() -> Element {
             input_value.set(history[new_idx as usize].clone());
         }
         Key::ArrowDown => {
+            tab_state.set(0);
+            tab_stub.set(String::new());
             let history = cmd_history();
             let idx = history_idx();
             if idx < 0 {
@@ -243,7 +276,11 @@ pub fn DesktopTerminal() -> Element {
                 input_value.set(history[new_idx as usize].clone());
             }
         }
-        _ => {}
+        _ => {
+            // Any other key (typing chars) resets tab cycling.
+            tab_state.set(0);
+            tab_stub.set(String::new());
+        }
     };
 
     use_effect(move || {
