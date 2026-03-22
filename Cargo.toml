@@ -1,6 +1,6 @@
 [package]
 name = "blaze"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Yassen717 <EngYassenIbrahim@gmail.com>"]
 edition = "2021"
 build = "build.rs"
@@ -10,8 +10,10 @@ description = "A blazingly fast terminal emulator built with Rust"
 dioxus = { version = "0.7.1", features = ["router"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1", features = ["process", "io-util", "sync", "rt"] }
-image = { version = "0.25", default-features = false, features = ["png"] }
+tokio        = { version = "1",    features = ["process", "io-util", "sync", "rt"] }
+image        = { version = "0.25", default-features = false, features = ["png"] }
+portable-pty = "0.8"
+vt100        = "0.15"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
