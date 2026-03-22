@@ -32,6 +32,8 @@ use std::time::Duration;
 
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 
+pub mod keys;
+
 use crate::terminal::screen::{
     CellStyle, Rgb, ScreenRow, ScreenSnapshot, StyledRun, xterm256_to_rgb,
 };
@@ -381,6 +383,7 @@ fn build_snapshot(screen: &vt100::Screen, revision: u64) -> ScreenSnapshot {
         cols,
         lines: rows,
         revision,
+        bracketed_paste: screen.bracketed_paste(),
     }
 }
 

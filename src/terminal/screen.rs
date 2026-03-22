@@ -211,6 +211,12 @@ pub struct ScreenSnapshot {
     /// Monotonically increasing counter. Bumped on every snapshot production.
     /// Use this for a fast "has anything changed?" check.
     pub revision: u64,
+
+    /// Whether the running program has enabled bracketed paste mode
+    /// (`\x1b[?2004h`). When `true`, pasted text must be wrapped in
+    /// `\x1b[200~` … `\x1b[201~` so the shell treats it as a single atomic
+    /// paste rather than executing each line immediately.
+    pub bracketed_paste: bool,
 }
 
 impl Default for ScreenSnapshot {
@@ -227,6 +233,7 @@ impl Default for ScreenSnapshot {
             cols,
             lines,
             revision: 0,
+            bracketed_paste: false,
         }
     }
 }
@@ -244,6 +251,7 @@ impl ScreenSnapshot {
             cols,
             lines,
             revision: 0,
+            bracketed_paste: false,
         }
     }
 }
