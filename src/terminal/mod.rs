@@ -7,6 +7,9 @@ pub mod utils;
 pub mod screen;
 
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
+pub mod pty;
+
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 pub use components::DesktopTerminal;
 #[cfg(not(feature = "desktop"))]
 pub use components::WebTerminalDemo;
