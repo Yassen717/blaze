@@ -154,6 +154,12 @@ impl CellStyle {
 pub struct StyledRun {
     pub text:  String,
     pub style: CellStyle,
+    /// Whether this run contains the terminal cursor.
+    ///
+    /// When `true`, the renderer applies the `.pty-cursor` CSS class so the
+    /// cursor blinks via the stylesheet animation.  Only the single run that
+    /// spans the cursor column will have this set.
+    pub is_cursor: bool,
 }
 
 // ── Screen row ───────────────────────────────────────────────────────────────
@@ -325,16 +331,18 @@ mod tests {
 
         let spaces = ScreenRow {
             runs: vec![StyledRun {
-                text:  "   ".to_string(),
-                style: CellStyle::default(),
+                text:     "   ".to_string(),
+                style:    CellStyle::default(),
+                is_cursor: false,
             }],
         };
         assert!(spaces.is_blank());
 
         let text = ScreenRow {
             runs: vec![StyledRun {
-                text:  "hello".to_string(),
-                style: CellStyle::default(),
+                text:     "hello".to_string(),
+                style:    CellStyle::default(),
+                is_cursor: false,
             }],
         };
         assert!(!text.is_blank());

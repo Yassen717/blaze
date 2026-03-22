@@ -4,17 +4,30 @@
 
 /* ---------- Reset & Base ---------- */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
-html, body {
+html,
+body {
     height: 100%;
-    background: radial-gradient(1200px 800px at 20% 10%, #0c1214 0%, #0a0e12 40%, #07090b 100%);
+    background: radial-gradient(
+        1200px 800px at 20% 10%,
+        #0c1214 0%,
+        #0a0e12 40%,
+        #07090b 100%
+    );
     color: #e6edf3;
-    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family:
+        "Inter",
+        "Segoe UI",
+        system-ui,
+        -apple-system,
+        sans-serif;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -32,7 +45,8 @@ a {
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid #1b2326;
-    font-family: 'Cascadia Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-family:
+        "Cascadia Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
     display: flex;
     flex-direction: column;
 }
@@ -79,9 +93,15 @@ a {
     height: 12px;
     border-radius: 50%;
 }
-.dot-red    { background: #ff5f56; }
-.dot-yellow { background: #ffbd2e; }
-.dot-green  { background: #27c93f; }
+.dot-red {
+    background: #ff5f56;
+}
+.dot-yellow {
+    background: #ffbd2e;
+}
+.dot-green {
+    background: #27c93f;
+}
 
 .terminal-title {
     color: #9aa4a9;
@@ -135,8 +155,10 @@ a {
     color: #6b7680;
     font-size: 12px;
     cursor: pointer;
-    transition: background 0.12s, color 0.12s;
-    font-family: 'Segoe MDL2 Assets', 'Cascadia Mono', monospace;
+    transition:
+        background 0.12s,
+        color 0.12s;
+    font-family: "Segoe MDL2 Assets", "Cascadia Mono", monospace;
     line-height: 1;
     padding: 0;
 }
@@ -232,6 +254,68 @@ a {
 }
 
 /* ========================================================
+   PTY SCREEN  (desktop renderer — Phase 4)
+   ======================================================== */
+
+/* The PTY screen fills the terminal body, replacing the old
+   line-by-line output area.  The shell controls scrollback
+   internally (alternate-screen, less, etc.) so we hide
+   overflow rather than letting the browser scroll. */
+.pty-screen {
+    flex: 1;
+    overflow: hidden;
+    font-family:
+        "Cascadia Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    /* white-space: pre preserves spaces and prevents line-wrapping —
+       the PTY itself handles line layout. */
+    white-space: pre;
+    padding: 12px 16px;
+    background: #050607;
+    /* Default terminal foreground — overridden per-span when vt100
+       reports an explicit colour. */
+    color: #40ff85;
+    cursor: default;
+    /* Allow the div to receive keyboard focus so onkeydown fires. */
+    outline: none;
+}
+
+/* One visible terminal line. */
+.pty-row {
+    display: block;
+    min-height: 1.6em;
+}
+
+/* ---- Cursor ---- */
+
+/* The cursor cell receives this class so it blinks independently
+   of the text content.  Background and foreground are the inverse
+   of the Blaze theme defaults (handled by the Rust renderer, which
+   applies the fallback colours at snapshot-build time). */
+.pty-cursor {
+    background: #5dff9a;
+    color: #050607;
+    animation: pty-blink 1.1s step-end infinite;
+}
+
+/* Stand-alone blink class for cells that carry the VT blink
+   attribute without also being the cursor. */
+.pty-blink {
+    animation: pty-blink 1.1s step-end infinite;
+}
+
+@keyframes pty-blink {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+}
+
+/* ========================================================
    WEBSITE  (web feature only)
    ======================================================== */
 
@@ -311,9 +395,15 @@ a {
 }
 
 @keyframes gradient-shift {
-    0%   { background-position: 0% center; }
-    50%  { background-position: 100% center; }
-    100% { background-position: 0% center; }
+    0% {
+        background-position: 0% center;
+    }
+    50% {
+        background-position: 100% center;
+    }
+    100% {
+        background-position: 0% center;
+    }
 }
 
 .hero-subtitle {
@@ -341,7 +431,9 @@ a {
     font-weight: 700;
     font-size: 1rem;
     border-radius: 10px;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
     cursor: pointer;
 }
 .btn-primary:hover {
@@ -357,7 +449,9 @@ a {
     font-weight: 600;
     font-size: 1rem;
     border-radius: 10px;
-    transition: border-color 0.2s, color 0.2s;
+    transition:
+        border-color 0.2s,
+        color 0.2s;
     cursor: pointer;
 }
 .btn-secondary:hover {
@@ -399,7 +493,9 @@ a {
     border: 1px solid #1c2333;
     border-radius: 14px;
     padding: 32px 28px;
-    transition: transform 0.2s, border-color 0.2s;
+    transition:
+        transform 0.2s,
+        border-color 0.2s;
 }
 .feature-card:hover {
     transform: translateY(-4px);
@@ -492,7 +588,8 @@ a {
     padding: 4px 10px;
     border-radius: 6px;
     font-size: 0.95rem;
-    font-family: 'Cascadia Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-family:
+        "Cascadia Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
     margin-bottom: 10px;
 }
 
@@ -509,7 +606,8 @@ a {
     padding: 10px 14px;
     border-radius: 8px;
     font-size: 0.88rem;
-    font-family: 'Cascadia Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-family:
+        "Cascadia Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
     overflow-x: auto;
 }
 
@@ -543,7 +641,9 @@ a {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    transition: border-color 0.2s, transform 0.2s;
+    transition:
+        border-color 0.2s,
+        transform 0.2s;
 }
 .dl-card:hover {
     border-color: #2ea043;
@@ -614,7 +714,8 @@ a {
     padding: 16px 20px;
     border-radius: 10px;
     font-size: 0.85rem;
-    font-family: 'Cascadia Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-family:
+        "Cascadia Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
     white-space: pre;
     overflow-x: auto;
     line-height: 1.6;
@@ -675,7 +776,8 @@ a {
     padding: 4px 14px;
     font-size: 0.85rem;
     font-weight: 700;
-    font-family: 'Cascadia Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-family:
+        "Cascadia Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
 }
 .dl-version-meta {
     color: #484f58;
@@ -728,10 +830,10 @@ a {
     }
 }
 
-#echo>input:focus {
+#echo > input:focus {
     border-bottom-color: #6d85c6;
 }
 
-#echo>p {
+#echo > p {
     margin: 20px 0px 0px auto;
 }

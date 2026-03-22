@@ -33,6 +33,7 @@ use std::time::Duration;
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 
 pub mod keys;
+pub mod renderer;
 
 use crate::terminal::screen::{
     CellStyle, Rgb, ScreenRow, ScreenSnapshot, StyledRun, xterm256_to_rgb,
@@ -399,9 +400,12 @@ fn build_row(
     let mut runs = Vec::<StyledRun>::new();
     let mut text = String::new();
     let mut current_style = CellStyle::default();
+    // Tracks whether the run currently being accumulated contains the cursor
+    // cell. Reset to false each time a completed run is flushed.
+    let mut current_is_cursor = false;
 
     for col in 0..cols {
-        let is_cursor = row_idx == cur_row && col == cur_col;
+        let is_cursor_cell = row_idx == cur_row && col == cur_col;
 
         let (ch, cell_style) = match screen.cell(row_idx, col) {
             Some(cell) => {
@@ -409,7 +413,7 @@ fn build_row(
                 // Wide-character continuation cells have empty contents; treat
                 // them as a space to preserve column alignment.
                 let ch = if s.is_empty() { " ".to_string() } else { s.to_string() };
-                (ch, cell_to_style(cell, is_cursor))
+                (ch, cell_to_style(cell, is_cursor_cell))
             }
             None => (" ".to_string(), CellStyle::default()),
         };
@@ -419,16 +423,29 @@ fn build_row(
                 runs.push(StyledRun {
                     text: std::mem::take(&mut text),
                     style: current_style.clone(),
+                    is_cursor: current_is_cursor,
                 });
+                current_is_cursor = false;
             }
             current_style = cell_style;
+        }
+
+        // Mark the accumulating run as the cursor run when this cell is the
+        // cursor. Because cell_to_style applies unique colours for the cursor
+        // cell, it will almost always be isolated in its own single-char run.
+        if is_cursor_cell {
+            current_is_cursor = true;
         }
 
         text.push_str(&ch);
     }
 
     if !text.is_empty() {
-        runs.push(StyledRun { text, style: current_style });
+        runs.push(StyledRun {
+            text,
+            style: current_style,
+            is_cursor: current_is_cursor,
+        });
     }
 
     ScreenRow { runs }
