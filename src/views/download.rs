@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
-const RELEASE_URL: &str = "https://github.com/Yassen717/blaze/releases/tag/v0.1.1";
-const WINDOWS_ASSET_URL: &str = "https://github.com/Yassen717/blaze/releases/download/v0.1.1/blaze_0.1.1_x64_en-US.msi";
+const RELEASE_URL: &str = "https://github.com/Yassen717/blaze/releases/tag/v0.2.0";
+const WINDOWS_ASSET_URL: &str = "https://github.com/Yassen717/blaze/releases/download/v0.2.0/blaze_0.2.0_x64_en-US.msi";
 
 #[component]
 pub fn DownloadPage() -> Element {
@@ -35,7 +35,7 @@ pub fn DownloadPage() -> Element {
                         href: WINDOWS_ASSET_URL,
                         target: "_blank",
                         rel: "noopener noreferrer",
-                        "⬇  Download v0.1.1 (.msi)"
+                        "⬇  Download v0.2.0 (.msi)"
                     }
                 }
 
@@ -99,7 +99,7 @@ pub fn DownloadPage() -> Element {
 
             // ── version badge ────────────────────────────────────────────────────
             div { class: "dl-version-row",
-                span { class: "dl-version-tag", "v0.1.1" }
+                span { class: "dl-version-tag", "v0.2.0" }
                 span { class: "dl-version-meta", "· Latest release" }
             }
         }
