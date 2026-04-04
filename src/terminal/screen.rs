@@ -139,6 +139,7 @@ impl CellStyle {
 
     /// Returns `true` when this style is entirely default (no inline CSS needed).
     #[inline]
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn is_default(&self) -> bool {
         self == &Self::default()
     }
@@ -248,6 +249,7 @@ impl ScreenSnapshot {
     /// Convenience constructor used in tests — creates a blank screen of the
     /// given dimensions.
     #[cfg(test)]
+    #[allow(dead_code)]
     pub fn blank(cols: u16, lines: u16) -> Self {
         Self {
             rows: (0..lines).map(|_| ScreenRow { runs: Vec::new() }).collect(),

@@ -199,6 +199,7 @@ fn ctrl_char_bytes(s: &str, alt: bool) -> Option<Vec<u8>> {
 /// The `bracketed_paste` flag should be read from
 /// [`ScreenSnapshot::bracketed_paste`] which reflects the current state
 /// reported by the vt100 parser.
+#[cfg_attr(not(test), allow(dead_code))]
 pub fn paste_to_bytes(text: &str, bracketed_paste: bool) -> Vec<u8> {
     let extra = if bracketed_paste { 12 } else { 0 }; // len("\x1b[200~") * 2
     let mut out = Vec::with_capacity(text.len() + extra);

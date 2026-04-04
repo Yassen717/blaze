@@ -31,6 +31,7 @@ pub fn DesktopTerminal() -> Element {
 
         match PtySession::spawn(80, 24) {
             Ok((pty_session, mut update_rx)) => {
+                let _ = pty_session.resize_tx.send((80, 24));
                 session.set(Some(pty_session));
 
                 let mut screen_sig = screen;
@@ -60,13 +61,6 @@ pub fn DesktopTerminal() -> Element {
             }
         }
     };
-
-    // Basic initial resize hint; full dynamic resize can be refined in phase 6.
-    use_effect(move || {
-        if let Some(s) = session.read().as_ref() {
-            let _ = s.resize_tx.send((screen().cols, screen().lines));
-        }
-    });
 
     let screen_signal: ReadSignal<ScreenSnapshot> = screen.into();
 
@@ -125,7 +119,7 @@ pub fn WebTerminalDemo() -> Element {
     let lines = use_signal(|| {
         vec![
             TerminalLine {
-                content: "⚡ Blaze Terminal v0.1.1 (Web Demo)".into(),
+                content: "⚡ Blaze Terminal v0.2.1 (Web Demo)".into(),
                 line_type: LineType::System,
             },
             TerminalLine {

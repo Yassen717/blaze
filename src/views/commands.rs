@@ -8,7 +8,7 @@ pub fn CommandsPage() -> Element {
         section { class: "page-section",
             h1 { class: "page-title", "Command Reference" }
             p { class: "page-intro",
-                "Blaze v0.2.0 runs a real shell inside a PTY on desktop. Command parsing, history, and completion come from your shell."
+                "Blaze v0.2.1 runs a real shell inside a PTY on desktop. Command parsing, history, and completion come from your shell."
             }
 
             h2 { "Desktop Terminal (PTY-backed)" }
@@ -18,7 +18,6 @@ pub fn CommandsPage() -> Element {
                 CmdCard { cmd: "Interactive apps", desc: "Full-screen TUIs and REPLs are supported.", example: "vim src/main.rs" }
                 CmdCard { cmd: "Shell history", desc: "Arrow keys and shell-native search work.", example: "ArrowUp / Ctrl+R" }
                 CmdCard { cmd: "Signals", desc: "Common control keys are forwarded to PTY.", example: "Ctrl+C / Ctrl+D / Ctrl+Z" }
-                CmdCard { cmd: "Resize aware", desc: "PTY resize events are propagated to the shell.", example: "Resize window while running vim" }
             }
 
             h2 { "Web Demo (Simulated)" }

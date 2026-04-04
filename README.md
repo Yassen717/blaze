@@ -5,7 +5,7 @@
 **A blazingly fast, modern terminal emulator built with Rust**
 
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
-![Dioxus](https://img.shields.io/badge/dioxus-0.7.1-blue?style=for-the-badge)
+![Dioxus](https://img.shields.io/badge/dioxus-0.7.4-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=for-the-badge)
 
@@ -44,10 +44,10 @@ Blaze Terminal is a high-performance, cross-platform terminal emulator that comb
 <td>
 
 ### 🔧 **Functionality**
-- Built-in command set
-- System command integration
-- Directory navigation
-- Error handling & feedback
+- Full shell access through PTY
+- ANSI/VT100 rendering
+- Interactive TUI and REPL support
+- Real-time keyboard forwarding
 
 </td>
 <td>
@@ -64,36 +64,36 @@ Blaze Terminal is a high-performance, cross-platform terminal emulator that comb
 
 ## 📦 Installation
 
-### Download from GitHub Releases (v0.2.0)
+### Download from GitHub Releases (v0.2.1)
 
 If you just want to use Blaze (no source build required), download the latest packaged binary from **GitHub Releases**.
 
 1. Open your repository **Releases** page.
-2. Select release tag **`v0.2.0`**.
+2. Select release tag **`v0.2.1`**.
 3. Download the asset for your platform.
 4. Extract/install and launch `blaze`.
 
 Direct download page:
 
-https://github.com/Yassen717/blaze/releases/tag/v0.2.0
+https://github.com/Yassen717/blaze/releases/tag/v0.2.1
 
-### Publishing v0.2.0 (Maintainers)
+### Publishing v0.2.1 (Maintainers)
 
-Use this quick flow to publish `blaze` **0.2.0**:
+Use this quick flow to publish `blaze` **0.2.1**:
 
 ```bash
 # 1) Ensure version is correct
-# Cargo.toml -> version = "0.2.0"
+# Cargo.toml -> version = "0.2.1"
 
 # 2) Build release artifact(s)
 dx build --platform desktop --release
 
 # 3) Tag and push
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.2.1
+git push origin v0.2.1
 ```
 
-Then create a GitHub Release for tag `v0.2.0` and upload the generated desktop artifacts from your release output.
+Then create a GitHub Release for tag `v0.2.1` and upload the generated desktop artifacts from your release output.
 
 Project packaging is configured to emit release artifacts under:
 
@@ -114,8 +114,8 @@ curl -sSL https://dioxus.dev/install.sh | sh
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/blaze-terminal.git
-cd blaze-terminal
+git clone https://github.com/Yassen717/blaze.git
+cd blaze/app
 
 # Run desktop application
 dx serve --platform desktop
@@ -211,7 +211,7 @@ blaze-terminal/
 ## 🛠️ Technology Stack
 
 - **Language**: [Rust](https://www.rust-lang.org/) 2021 Edition
-- **UI Framework**: [Dioxus](https://dioxuslabs.com/) 0.7.1
+- **UI Framework**: [Dioxus](https://dioxuslabs.com/) 0.7.4
 - **Async Runtime**: [Tokio](https://tokio.rs/) (desktop only)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) (auto-configured)
 - **Routing**: Dioxus Router (web only)
@@ -294,7 +294,7 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 - 🐛 [Report bugs](https://github.com/Yassen717/blaze/issues)
 - 💡 [Request features](https://github.com/Yassen717/blaze/issues)
-- ❓ [Ask questions](https://github.com/your-username/blaze-terminal/discussions)
+- ❓ [Ask questions](https://github.com/Yassen717/blaze/discussions)
 
 ## 📄 License
 
@@ -312,7 +312,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ and ⚡ by the Blaze Terminal team**
 
-[⭐ Star us on GitHub](https://github.com/Yassen717/blaze) • [🌐 Try the Web Demo](https://your-demo-url.com) • [📖 Documentation](https://docs.blaze-terminal.com)
+[⭐ Star us on GitHub](https://github.com/Yassen717/blaze) • [🌐 Releases](https://github.com/Yassen717/blaze/releases) • [🐛 Issues](https://github.com/Yassen717/blaze/issues)
 
 </div>
 
