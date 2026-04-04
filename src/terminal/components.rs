@@ -8,6 +8,7 @@ use crate::terminal::pty::PtySession;
 use crate::terminal::commands::web::run_web_command;
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 use crate::terminal::screen::ScreenSnapshot;
+#[cfg(not(feature = "desktop"))]
 use crate::terminal::state::{LineType, TerminalLine};
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 use crate::terminal::PtyScreen;
@@ -15,10 +16,10 @@ use crate::terminal::PtyScreen;
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 #[component]
 pub fn DesktopTerminal() -> Element {
-    let mut screen = use_signal(ScreenSnapshot::default);
-    let mut terminal_title = use_signal(|| "⚡ Blaze Terminal".to_string());
+    let screen = use_signal(ScreenSnapshot::default);
+    let terminal_title = use_signal(|| "⚡ Blaze Terminal".to_string());
     let mut startup_error = use_signal(|| Option::<String>::None);
-    let session = use_signal(|| Option::<PtySession>::None);
+    let mut session = use_signal(|| Option::<PtySession>::None);
     let mut is_started = use_signal(|| false);
 
     // Start PTY session exactly once.
@@ -54,7 +55,7 @@ pub fn DesktopTerminal() -> Element {
         e.prevent_default();
 
         if let Some(bytes) = key_to_bytes(e.key(), e.modifiers()) {
-            if let Some(s) = session().as_ref() {
+            if let Some(s) = session.read().as_ref() {
                 let _ = s.write_tx.send(bytes);
             }
         }
@@ -62,10 +63,12 @@ pub fn DesktopTerminal() -> Element {
 
     // Basic initial resize hint; full dynamic resize can be refined in phase 6.
     use_effect(move || {
-        if let Some(s) = session().as_ref() {
+        if let Some(s) = session.read().as_ref() {
             let _ = s.resize_tx.send((screen().cols, screen().lines));
         }
     });
+
+    let screen_signal: ReadSignal<ScreenSnapshot> = screen.into();
 
     rsx! {
         div { class: "terminal-container terminal-fullscreen",
@@ -109,7 +112,7 @@ pub fn DesktopTerminal() -> Element {
                 if let Some(err) = startup_error() {
                     div { class: "line-error", "{err}" }
                 } else {
-                    PtyScreen { snapshot: screen.into() }
+                    PtyScreen { snapshot: screen_signal }
                 }
             }
         }
