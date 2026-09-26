@@ -224,6 +224,11 @@ pub struct ScreenSnapshot {
     /// `\x1b[200~` … `\x1b[201~` so the shell treats it as a single atomic
     /// paste rather than executing each line immediately.
     pub bracketed_paste: bool,
+
+    /// Whether the cursor should be drawn (`\x1b[?25h` vs `\x1b[?25l`).
+    /// Programs hide the cursor during redraws and in full-screen apps;
+    /// honouring this avoids painting a phantom block at a stale position.
+    pub cursor_visible: bool,
 }
 
 impl Default for ScreenSnapshot {
@@ -241,6 +246,7 @@ impl Default for ScreenSnapshot {
             lines,
             revision: 0,
             bracketed_paste: false,
+            cursor_visible: true,
         }
     }
 }
@@ -260,6 +266,7 @@ impl ScreenSnapshot {
             lines,
             revision: 0,
             bracketed_paste: false,
+            cursor_visible: true,
         }
     }
 }
