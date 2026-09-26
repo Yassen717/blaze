@@ -5,7 +5,7 @@
 **A blazingly fast, modern terminal emulator built with Rust**
 
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
-![Dioxus](https://img.shields.io/badge/dioxus-0.7.1-blue?style=for-the-badge)
+![Dioxus](https://img.shields.io/badge/dioxus-0.7.4-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=for-the-badge)
 
@@ -44,10 +44,10 @@ Blaze Terminal is a high-performance, cross-platform terminal emulator that comb
 <td>
 
 ### 🔧 **Functionality**
-- Built-in command set
-- System command integration
-- Directory navigation
-- Error handling & feedback
+- Full shell access through PTY
+- ANSI/VT100 rendering
+- Interactive TUI and REPL support
+- Real-time keyboard forwarding
 
 </td>
 <td>
@@ -64,36 +64,36 @@ Blaze Terminal is a high-performance, cross-platform terminal emulator that comb
 
 ## 📦 Installation
 
-### Download from GitHub Releases (v0.1.1)
+### Download from GitHub Releases (v0.2.1)
 
 If you just want to use Blaze (no source build required), download the latest packaged binary from **GitHub Releases**.
 
 1. Open your repository **Releases** page.
-2. Select release tag **`v0.1.1`**.
+2. Select release tag **`v0.2.1`**.
 3. Download the asset for your platform.
 4. Extract/install and launch `blaze`.
 
 Direct download page:
 
-https://github.com/Yassen717/blaze/releases/tag/v0.1.1
+https://github.com/Yassen717/blaze/releases/tag/v0.2.1
 
-### Publishing v0.1.1 (Maintainers)
+### Publishing v0.2.1 (Maintainers)
 
-Use this quick flow to publish `blaze` **0.1.1**:
+Use this quick flow to publish `blaze` **0.2.1**:
 
 ```bash
 # 1) Ensure version is correct
-# Cargo.toml -> version = "0.1.1"
+# Cargo.toml -> version = "0.2.1"
 
 # 2) Build release artifact(s)
 dx build --platform desktop --release
 
 # 3) Tag and push
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.2.1
+git push origin v0.2.1
 ```
 
-Then create a GitHub Release for tag `v0.1.1` and upload the generated desktop artifacts from your release output.
+Then create a GitHub Release for tag `v0.2.1` and upload the generated desktop artifacts from your release output.
 
 Project packaging is configured to emit release artifacts under:
 
@@ -114,8 +114,8 @@ curl -sSL https://dioxus.dev/install.sh | sh
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/blaze-terminal.git
-cd blaze-terminal
+git clone https://github.com/Yassen717/blaze.git
+cd blaze/app
 
 # Run desktop application
 dx serve --platform desktop
@@ -133,10 +133,10 @@ dx serve --platform desktop
 ```
 
 The desktop app provides a full terminal experience with:
-- Real command execution
-- Read-only file system operations by default
+- A real shell running inside a PTY
+- ANSI/VT rendering with interactive app support
+- Keyboard forwarding (Ctrl+C, Ctrl+D, arrows, function keys)
 - Custom window controls (minimize, maximize, close)
-- Complete terminal functionality
 
 ### Web Showcase
 
@@ -152,40 +152,26 @@ The web version includes:
 
 ## 📚 Commands Reference
 
-### Built-in Commands
+### Desktop App (Real PTY Terminal)
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `help` | Display available commands | `help` |
-| `clear` / `cls` | Clear terminal screen | `clear` |
-| `cd <directory>` | Change working directory | `cd Documents` |
-| `pwd` | Print working directory | `pwd` |
-| `exit` | Close the terminal | `exit` |
+The desktop build runs a real system shell inside a PTY. Blaze no longer uses
+a command allowlist, so command behavior is owned by your shell.
 
-### System Commands (Desktop Only)
+Examples that work in desktop builds:
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `ls` / `dir` | List directory contents | `ls` or `dir` |
-| `echo <text>` | Print text to terminal | `echo "Hello World"` |
-| `curl <url> ...` | Fetch a URL (requires `curl` installed) | `curl https://example.com` |
-| `wget <url> ...` | Fetch a URL (requires `wget` installed) | `wget https://example.com` |
-| `cat` / `type <file>` | Display file contents (`type` is Windows-only alias) | `cat readme.txt` |
-| `grep <pattern> <file>` | Search text in file | `grep "TODO" notes.txt` |
-| `ipconfig` / `ip` | Show network config (Windows) | `ipconfig` |
-| `ifconfig` / `ip` | Show network config (Linux/macOS) | `ifconfig` |
-| `vim <file>` | Not supported (interactive TTY required) | `vim config.txt` |
-| `whoami` | Display current user | `whoami` |
+| Category | Example |
+|---------|---------|
+| Git tooling | `git log --oneline` |
+| Rust tooling | `cargo test` |
+| Interactive REPL | `python` |
+| Full-screen TUI | `vim src/main.rs` |
+| Remote sessions | `ssh user@host` |
+| Pipes and redirects | `cargo test | findstr error` |
 
-### Optional Mutating Commands (Desktop + `unsafe-fs`)
+### Web Demo (Simulated)
 
-These commands are intentionally disabled by default and require the `unsafe-fs` feature.
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `mkdir <name>` | Create directory | `mkdir new-folder` |
-| `rm` / `del <path>` | Delete file or directory | `rm file.txt` |
-| `mv <from> <to>` | Move or rename | `mv old.txt new.txt` |
+The web build keeps a simulated command set for showcase purposes. Use
+`help` in the demo to see supported commands.
 
 ## 🏗️ Architecture
 
@@ -201,15 +187,16 @@ blaze-terminal/
 │   │   ├── mod.rs
 │   ├── 📁 terminal/       # Terminal domain module
 │   │   ├── mod.rs
-│   │   ├── components.rs  # Desktop/Web terminal UI components
-│   │   ├── state.rs       # Terminal line state types
-│   │   ├── utils.rs       # Shared helpers (arg parsing, line trimming)
+│   │   ├── components.rs  # Desktop PTY terminal + web demo component
+│   │   ├── state.rs       # Terminal line state types (web demo)
+│   │   ├── screen.rs      # PTY screen snapshot model
+│   │   ├── utils.rs       # Shared helpers (line trimming)
+│   │   ├── 📁 pty/
+│   │   │   ├── mod.rs     # PTY session backend
+│   │   │   ├── keys.rs    # Keyboard event to PTY bytes mapping
+│   │   │   └── renderer.rs # Screen snapshot to RSX renderer
 │   │   └── 📁 commands/
-│   │       ├── mod.rs
-│   │   │   ├── 📁 desktop/
-│   │   │   │   ├── mod.rs # Desktop command dispatcher
-│   │   │   │   ├── fs.rs  # Filesystem command handlers
-│   │   │   │   └── process.rs # Process/network command handlers
+│   │       ├── mod.rs     # Module gate for web command simulator
 │   │       └── web.rs     # Web demo command simulation logic
 │   └── 📁 views/          # Web pages and routing
 │       ├── mod.rs         # Route definitions
@@ -224,7 +211,7 @@ blaze-terminal/
 ## 🛠️ Technology Stack
 
 - **Language**: [Rust](https://www.rust-lang.org/) 2021 Edition
-- **UI Framework**: [Dioxus](https://dioxuslabs.com/) 0.7.1
+- **UI Framework**: [Dioxus](https://dioxuslabs.com/) 0.7.4
 - **Async Runtime**: [Tokio](https://tokio.rs/) (desktop only)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) (auto-configured)
 - **Routing**: Dioxus Router (web only)
@@ -269,13 +256,15 @@ The project uses Cargo features to control platform-specific code:
 default = ["desktop"]
 web = ["dioxus/web"]           # Web platform support
 desktop = ["dioxus/desktop"]   # Desktop platform support
-safe-mode = []                  # Disable destructive commands (rm/del/mv/mkdir)
-unsafe-fs = []                  # Opt-in mutating filesystem commands (mkdir/rm/del/mv)
+safe-mode = []                  # Deprecated in v0.2.0 (no-op)
+unsafe-fs = []                  # Deprecated in v0.2.0 (no-op)
 ```
 
-### Windows Process Behavior
+### Windows Shell Backend
 
-On Windows desktop builds, external commands are launched with `CREATE_NO_WINDOW` to avoid flashing console popups for short-lived commands (for example `curl`, `wget`, and `ipconfig`). Output is still captured and shown inside Blaze.
+Windows desktop builds use ConPTY through `portable-pty` and launch a real
+shell session (PowerShell by default). Older Windows builds without ConPTY
+support are not supported.
 
 ### Building for Different Platforms
 
@@ -305,7 +294,7 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 - 🐛 [Report bugs](https://github.com/Yassen717/blaze/issues)
 - 💡 [Request features](https://github.com/Yassen717/blaze/issues)
-- ❓ [Ask questions](https://github.com/your-username/blaze-terminal/discussions)
+- ❓ [Ask questions](https://github.com/Yassen717/blaze/discussions)
 
 ## 📄 License
 
@@ -323,7 +312,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ and ⚡ by the Blaze Terminal team**
 
-[⭐ Star us on GitHub](https://github.com/Yassen717/blaze) • [🌐 Try the Web Demo](https://your-demo-url.com) • [📖 Documentation](https://docs.blaze-terminal.com)
+[⭐ Star us on GitHub](https://github.com/Yassen717/blaze) • [🌐 Releases](https://github.com/Yassen717/blaze/releases) • [🐛 Issues](https://github.com/Yassen717/blaze/issues)
 
 </div>
 

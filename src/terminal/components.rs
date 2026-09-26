@@ -1,299 +1,73 @@
 use dioxus::prelude::*;
 
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
-use crate::terminal::commands::desktop::is_allowed_external;
-#[cfg(all(feature = "desktop", not(target_arch = "wasm32"), target_os = "windows"))]
-use crate::terminal::commands::desktop::execute_windows_command;
-#[cfg(all(feature = "desktop", not(target_arch = "wasm32"), not(target_os = "windows")))]
-use crate::terminal::commands::desktop::stream_unix_command;
+use crate::terminal::pty::keys::key_to_bytes;
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
+use crate::terminal::pty::PtySession;
 #[cfg(not(feature = "desktop"))]
 use crate::terminal::commands::web::run_web_command;
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
+use crate::terminal::screen::ScreenSnapshot;
+#[cfg(not(feature = "desktop"))]
 use crate::terminal::state::{LineType, TerminalLine};
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
-use crate::terminal::utils::split_args;
-#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
-use crate::terminal::utils::push_line_trim;
-#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
-use crate::terminal::utils::{load_history, append_history, tab_complete};
+use crate::terminal::PtyScreen;
 
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 #[component]
 pub fn DesktopTerminal() -> Element {
-    let mut lines = use_signal(|| {
-        vec![
-            TerminalLine {
-                content: "⚡ Blaze Terminal v0.1.1".into(),
-                line_type: LineType::System,
-            },
-            TerminalLine {
-                content: "Type 'help' for available commands.".into(),
-                line_type: LineType::System,
-            },
-            TerminalLine {
-                content: String::new(),
-                line_type: LineType::System,
-            },
-        ]
-    });
-    let mut input_value = use_signal(String::new);
-    let mut current_dir = use_signal(|| std::env::current_dir().unwrap_or_default().display().to_string());
-    let mut cmd_history = use_signal(|| load_history(1000));
-    let mut history_idx = use_signal(|| -1i32);
-    // Tracks consecutive Tab presses so we cycle through completions.
-    let mut tab_state = use_signal(|| 0usize);
-    // Stores the input that was typed before Tab was first pressed (the "stub").
-    let mut tab_stub = use_signal(String::new);
+    let screen = use_signal(ScreenSnapshot::default);
+    let terminal_title = use_signal(|| "⚡ Blaze Terminal".to_string());
+    let mut startup_error = use_signal(|| Option::<String>::None);
+    let mut session = use_signal(|| Option::<PtySession>::None);
+    let mut is_started = use_signal(|| false);
 
-    let handle_key = move |e: KeyboardEvent| match e.key() {
-        Key::Tab => {
-            e.prevent_default();
-            let current_input = input_value();
-            // On the first Tab press, record the stub; on subsequent presses reuse it.
-            let stub = if tab_state() == 0 {
-                tab_stub.set(current_input.clone());
-                current_input.clone()
-            } else {
-                tab_stub()
-            };
-            let cwd = current_dir();
-            let state = tab_state();
-            if let Some(completed) = tab_complete(&stub, &cwd, state) {
-                input_value.set(completed);
-                tab_state.set(state + 1);
-            }
+    // Start PTY session exactly once.
+    use_effect(move || {
+        if is_started() {
             return;
         }
-        Key::Enter => {
-            // Reset tab cycling on any non-Tab key.
-            tab_state.set(0);
-            tab_stub.set(String::new());
+        is_started.set(true);
 
-            let cmd = input_value().trim().to_string();
-            if cmd.is_empty() {
-                return;
-            }
-            let cwd = current_dir().clone();
+        match PtySession::spawn(80, 24) {
+            Ok((pty_session, mut update_rx)) => {
+                let _ = pty_session.resize_tx.send((80, 24));
+                session.set(Some(pty_session));
 
-            cmd_history.write().push(cmd.clone());
-            append_history(&cmd);
-            history_idx.set(-1);
-
-            push_line_trim(
-                lines,
-                TerminalLine {
-                    content: format!("{} > {}", cwd, cmd),
-                    line_type: LineType::Command,
-                },
-            );
-            input_value.set(String::new());
-
-            let args = split_args(&cmd);
-            let first = args.first().map(|s| s.to_lowercase()).unwrap_or_default();
-
-            match first.as_str() {
-                "clear" | "cls" => {
-                    lines.write().clear();
-                    return;
-                }
-                "help" => {
-                    let help = [
-                        "⚡ Blaze Terminal — Commands:",
-                        "",
-                        "  help            Show this help message",
-                        "  clear / cls     Clear terminal output",
-                        "  cd <dir>        Change directory",
-                        "  pwd             Print working directory",
-                        "  exit            Exit the terminal",
-                        "",
-                        #[cfg(all(target_os = "windows", feature = "safe-mode"))]
-                        "Allowed system commands (safe mode): ls, dir, echo, vim, whoami, cat/type, grep, curl, wget, ipconfig (ip).",
-                        #[cfg(all(target_os = "windows", not(feature = "safe-mode"), not(feature = "unsafe-fs")))]
-                        "Allowed system commands: ls, dir, echo, vim, whoami, cat/type, grep, curl, wget, ipconfig (ip).",
-                        #[cfg(all(target_os = "windows", not(feature = "safe-mode"), feature = "unsafe-fs"))]
-                        "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat/type, grep, curl, wget, ipconfig (ip).",
-                        #[cfg(all(not(target_os = "windows"), feature = "safe-mode"))]
-                        "Allowed system commands (safe mode): ls, dir, echo, vim, whoami, cat, grep, curl, wget, ifconfig, ip.",
-                        #[cfg(all(not(target_os = "windows"), not(feature = "safe-mode"), not(feature = "unsafe-fs")))]
-                        "Allowed system commands: ls, dir, echo, vim, whoami, cat, grep, curl, wget, ifconfig, ip.",
-                        #[cfg(all(not(target_os = "windows"), not(feature = "safe-mode"), feature = "unsafe-fs"))]
-                        "Allowed system commands: ls, dir, echo, vim, mkdir, rm/del, mv, whoami, cat, grep, curl, wget, ifconfig, ip.",
-                    ];
-                    let mut v = lines.write();
-                    for h in help {
-                        v.push(TerminalLine {
-                            content: h.to_string(),
-                            line_type: LineType::System,
-                        });
-                    }
-                    return;
-                }
-                "exit" => {
-                    dioxus::desktop::window().close();
-                    return;
-                }
-                "cd" => {
-                    let rest = args.iter().skip(1).cloned().collect::<Vec<_>>().join(" ");
-                    if rest.is_empty() {
-                        push_line_trim(
-                            lines,
-                            TerminalLine {
-                                content: cwd.clone(),
-                                line_type: LineType::Output,
-                            },
-                        );
-                        return;
-                    }
-                    let target = if std::path::Path::new(&rest).is_absolute() {
-                        std::path::PathBuf::from(&rest)
-                    } else {
-                        std::path::PathBuf::from(&cwd).join(&rest)
-                    };
-                    match target.canonicalize() {
-                        Ok(p) if p.is_dir() => {
-                            let s = p.display().to_string();
-                            let clean = s.strip_prefix(r"\\?\").unwrap_or(&s).to_string();
-                            current_dir.set(clean);
-                        }
-                        Ok(_) => {
-                            push_line_trim(
-                                lines,
-                                TerminalLine {
-                                    content: format!("Not a directory: {}", rest),
-                                    line_type: LineType::Error,
-                                },
-                            );
-                        }
-                        Err(e) => {
-                            push_line_trim(
-                                lines,
-                                TerminalLine {
-                                    content: format!("cd: {}: {}", rest, e),
-                                    line_type: LineType::Error,
-                                },
-                            );
-                        }
-                    }
-                    return;
-                }
-                "pwd" => {
-                    push_line_trim(
-                        lines,
-                        TerminalLine {
-                            content: cwd.clone(),
-                            line_type: LineType::Output,
-                        },
-                    );
-                    return;
-                }
-                _ => {}
-            }
-
-            if !is_allowed_external(&first) {
-                push_line_trim(
-                    lines,
-                    TerminalLine {
-                        content: format!(
-                            "Command '{}' is not allowed. Type 'help' for a list of available commands.",
-                            first
-                        ),
-                        line_type: LineType::Error,
-                    },
-                );
-                return;
-            }
-
-            #[cfg(target_os = "windows")]
-            {
-                let lines_sig = lines;
-                let program = first.clone();
-                let argv = args;
+                let mut screen_sig = screen;
+                let mut title_sig = terminal_title;
                 spawn(async move {
-                    let result = tokio::task::spawn_blocking(move || -> Vec<TerminalLine> {
-                        execute_windows_command(&cwd, &program, &argv)
-                    })
-                    .await;
-
-                    match result {
-                        Ok(lines_out) => {
-                            for line in lines_out {
-                                push_line_trim(lines_sig, line);
-                            }
-                        }
-                        Err(e) => {
-                            push_line_trim(
-                                lines_sig,
-                                TerminalLine {
-                                    content: format!("Error: {}", e),
-                                    line_type: LineType::Error,
-                                },
-                            );
+                    while let Some(update) = update_rx.recv().await {
+                        *screen_sig.write() = update.snapshot;
+                        if !update.title.is_empty() {
+                            *title_sig.write() = update.title;
                         }
                     }
                 });
             }
+            Err(e) => {
+                startup_error.set(Some(format!("Failed to start PTY session: {e}")));
+            }
+        }
+    });
 
-            #[cfg(not(target_os = "windows"))]
-            {
-                let lines = lines;
-                let program = first.clone();
-                let program_args = args.iter().skip(1).cloned().collect::<Vec<_>>();
+    let handle_key = move |e: KeyboardEvent| {
+        // Keep browser/webview behavior terminal-like.
+        e.prevent_default();
 
-                spawn(async move {
-                    stream_unix_command(cwd, program, program_args, lines).await;
-                });
+        if let Some(bytes) = key_to_bytes(e.key(), e.modifiers()) {
+            if let Some(s) = session.read().as_ref() {
+                let _ = s.write_tx.send(bytes);
             }
-        }
-        Key::ArrowUp => {
-            tab_state.set(0);
-            tab_stub.set(String::new());
-            let history = cmd_history();
-            if history.is_empty() {
-                return;
-            }
-            let idx = history_idx();
-            let new_idx = if idx < 0 {
-                history.len() as i32 - 1
-            } else {
-                (idx - 1).max(0)
-            };
-            history_idx.set(new_idx);
-            input_value.set(history[new_idx as usize].clone());
-        }
-        Key::ArrowDown => {
-            tab_state.set(0);
-            tab_stub.set(String::new());
-            let history = cmd_history();
-            let idx = history_idx();
-            if idx < 0 {
-                return;
-            }
-            let new_idx = idx + 1;
-            if new_idx >= history.len() as i32 {
-                history_idx.set(-1);
-                input_value.set(String::new());
-            } else {
-                history_idx.set(new_idx);
-                input_value.set(history[new_idx as usize].clone());
-            }
-        }
-        _ => {
-            // Any other key (typing chars) resets tab cycling.
-            tab_state.set(0);
-            tab_stub.set(String::new());
         }
     };
 
-    use_effect(move || {
-        let _ = lines();
-        document::eval(
-            r#"setTimeout(()=>{let e=document.getElementById('terminal-output');if(e)e.scrollTop=e.scrollHeight},10)"#,
-        );
-    });
+    let screen_signal: ReadSignal<ScreenSnapshot> = screen.into();
 
     rsx! {
         div { class: "terminal-container terminal-fullscreen",
             div { class: "terminal-header",
-                span { class: "terminal-title", "⚡ Blaze Terminal" }
+                span { class: "terminal-title", "{terminal_title()}" }
                 div { class: "terminal-controls",
                     button {
                         class: "win-btn win-btn-minimize",
@@ -318,35 +92,21 @@ pub fn DesktopTerminal() -> Element {
                     }
                 }
             }
+
             div {
                 id: "terminal-output",
                 class: "terminal-body",
+                tabindex: 0,
+                autofocus: true,
+                onkeydown: handle_key,
                 onclick: move |_| {
-                    document::eval(r#"document.getElementById('terminal-input').focus()"#);
+                    document::eval(r#"document.getElementById('terminal-output')?.focus()"#);
                 },
-                for (i, line) in lines().iter().enumerate() {
-                    div {
-                        key: "{i}",
-                        class: match line.line_type {
-                            LineType::Command => "line-command",
-                            LineType::Output  => "line-output",
-                            LineType::Error   => "line-error",
-                            LineType::System  => "line-system",
-                        },
-                        "{line.content}"
-                    }
-                }
-                div { class: "terminal-input-line",
-                    span { class: "prompt", "{current_dir()} > " }
-                    input {
-                        id: "terminal-input",
-                        class: "terminal-input",
-                        r#type: "text",
-                        value: "{input_value}",
-                        autofocus: true,
-                        oninput: move |e| input_value.set(e.value()),
-                        onkeydown: handle_key,
-                    }
+
+                if let Some(err) = startup_error() {
+                    div { class: "line-error", "{err}" }
+                } else {
+                    PtyScreen { snapshot: screen_signal }
                 }
             }
         }
@@ -359,7 +119,7 @@ pub fn WebTerminalDemo() -> Element {
     let lines = use_signal(|| {
         vec![
             TerminalLine {
-                content: "⚡ Blaze Terminal v0.1.1 (Web Demo)".into(),
+                content: "⚡ Blaze Terminal v0.2.1 (Web Demo)".into(),
                 line_type: LineType::System,
             },
             TerminalLine {

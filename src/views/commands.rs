@@ -8,34 +8,30 @@ pub fn CommandsPage() -> Element {
         section { class: "page-section",
             h1 { class: "page-title", "Command Reference" }
             p { class: "page-intro",
-                "Blaze includes built-in commands and a small set of allowed system commands."
+                "Blaze v0.2.1 runs a real shell inside a PTY on desktop. Command parsing, history, and completion come from your shell."
             }
 
-            h2 { "Built-in Commands" }
+            h2 { "Desktop Terminal (PTY-backed)" }
             div { class: "commands-grid",
-                CmdCard { cmd: "help", desc: "Show available commands", example: "help" }
-                CmdCard { cmd: "clear / cls", desc: "Clear the terminal screen", example: "clear" }
-                CmdCard { cmd: "cd <dir>", desc: "Change working directory", example: "cd C:\\Projects" }
-                CmdCard { cmd: "pwd", desc: "Print working directory", example: "pwd" }
-                CmdCard { cmd: "exit", desc: "Quit Blaze Terminal", example: "exit" }
+                CmdCard { cmd: "Any shell command", desc: "Run whatever your shell supports.", example: "git log --oneline" }
+                CmdCard { cmd: "Pipes and redirects", desc: "Use native shell syntax.", example: "cargo test | findstr error" }
+                CmdCard { cmd: "Interactive apps", desc: "Full-screen TUIs and REPLs are supported.", example: "vim src/main.rs" }
+                CmdCard { cmd: "Shell history", desc: "Arrow keys and shell-native search work.", example: "ArrowUp / Ctrl+R" }
+                CmdCard { cmd: "Signals", desc: "Common control keys are forwarded to PTY.", example: "Ctrl+C / Ctrl+D / Ctrl+Z" }
             }
 
-            h2 { "Allowed System Commands" }
+            h2 { "Web Demo (Simulated)" }
             div { class: "commands-grid",
-                CmdCard { cmd: "dir", desc: "List files and folders", example: "dir" }
-                CmdCard { cmd: "ls", desc: "List files and folders", example: "ls" }
+                CmdCard { cmd: "help", desc: "Show demo command list", example: "help" }
+                CmdCard { cmd: "clear / cls", desc: "Clear the simulated output", example: "clear" }
+                CmdCard { cmd: "dir / ls", desc: "List sample files and folders", example: "dir" }
                 CmdCard { cmd: "echo <text>", desc: "Print text to the terminal", example: "echo Hello!" }
-                CmdCard { cmd: "curl <url> ...", desc: "Fetch a URL (requires curl installed)", example: "curl https://example.com" }
-                CmdCard { cmd: "wget <url> ...", desc: "Fetch a URL (requires wget installed)", example: "wget https://example.com" }
-                CmdCard { cmd: "vim", desc: "Not supported (interactive TTY required)", example: "vim readme.txt" }
-                CmdCard { cmd: "mkdir <dir>", desc: "Create a directory", example: "mkdir src" }
-                CmdCard { cmd: "rm / del <path>", desc: "Delete files or directories", example: "rm temp.txt" }
-                CmdCard { cmd: "mv <from> <to>", desc: "Move or rename", example: "mv old.txt new.txt" }
+                CmdCard { cmd: "curl / wget <url>", desc: "Return simulated fetch output", example: "curl https://example.com" }
+                CmdCard { cmd: "cat / type / grep", desc: "Simulated file operations", example: "grep todo notes.txt" }
                 CmdCard { cmd: "whoami", desc: "Show current user", example: "whoami" }
-                CmdCard { cmd: "cat / type <file>", desc: "Print a file", example: "cat notes.txt" }
-                CmdCard { cmd: "grep <pat> <file>", desc: "Find text in a file", example: "grep todo notes.txt" }
-                CmdCard { cmd: "ipconfig / ip", desc: "Show network config (Windows)", example: "ipconfig" }
-                CmdCard { cmd: "ifconfig / ip", desc: "Show network config (Linux/macOS)", example: "ifconfig" }
+                CmdCard { cmd: "pwd / date", desc: "Show simulated environment info", example: "pwd" }
+                CmdCard { cmd: "ip / ipconfig / ifconfig", desc: "Show simulated network info", example: "ipconfig" }
+                CmdCard { cmd: "mkdir / rm / del / mv", desc: "Simulated mutating operations", example: "mv a.txt b.txt" }
             }
 
         }
