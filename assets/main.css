@@ -274,8 +274,9 @@ a {
     padding: 12px 16px;
     background: #050607;
     /* Default terminal foreground — overridden per-span when vt100
-       reports an explicit colour. */
-    color: #40ff85;
+       reports an explicit colour. Neutral light grey like a standard
+       terminal; Blaze green is kept for the cursor accent. */
+    color: #e6edf3;
     cursor: default;
     /* Allow the div to receive keyboard focus so onkeydown fires. */
     outline: none;
