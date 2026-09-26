@@ -214,12 +214,23 @@ impl PtySession {
 
         // ── 7. Process thread ─────────────────────────────────────────────────
         //
-        // Owns the vt100 parser, drains resize events, and emits PtyUpdates.
-        // Also waits for the child process to exit so it can be reaped cleanly.
+        // Owns the vt100 parser, drains resize events, emits PtyUpdates, and
+        // answers host-directed queries (e.g. DSR cursor reports) via a clone
+        // of the write channel. Also waits for the child process to exit so
+        // it can be reaped cleanly.
+        let process_write_tx = write_tx.clone();
         std::thread::Builder::new()
             .name("blaze-pty-process".into())
             .spawn(move || {
-                process_loop(raw_rx, resize_rx, master, rows, cols, update_tx);
+                process_loop(
+                    raw_rx,
+                    resize_rx,
+                    master,
+                    rows,
+                    cols,
+                    update_tx,
+                    process_write_tx,
+                );
                 // Reap the child process after the session ends to avoid zombies.
                 let mut child = child;
                 let _ = child.wait();
@@ -310,9 +321,13 @@ fn process_loop(
     init_rows: u16,
     init_cols: u16,
     update_tx: tokio::sync::mpsc::UnboundedSender<PtyUpdate>,
+    write_tx: mpsc::Sender<Vec<u8>>,
 ) {
     let mut parser = PtyParser::new(init_rows, init_cols, 1000);
     let mut revision: u64 = 0;
+    // Last bytes of the previous batch, kept so an escape sequence split
+    // across a batch boundary is still recognised.
+    let mut tail: Vec<u8> = Vec::new();
 
     loop {
         // ── (a) Drain all pending resize events first (non-blocking) ──────────
@@ -356,6 +371,27 @@ fn process_loop(
         // ── (c) Feed the bytes into the VT100 parser ──────────────────────────
         parser.process(&batch);
 
+        // ── (c2) Answer terminal-directed queries in this batch ───────────────
+        // ConPTY (INHERIT_CURSOR) and some applications send DSR queries and
+        // wait for a reply on the input pipe; never answering can stall them.
+        let mut hay = tail.clone();
+        hay.extend_from_slice(&batch);
+        let (cursor_reports, status_requests) = count_dsr_queries(&hay);
+        if cursor_reports > 0 || status_requests > 0 {
+            let (cur_row, cur_col) = parser.screen().cursor_position();
+            for _ in 0..cursor_reports {
+                // CPR — 1-based row;column.
+                let _ = write_tx.send(
+                    format!("\x1b[{};{}R", cur_row + 1, cur_col + 1).into_bytes(),
+                );
+            }
+            for _ in 0..status_requests {
+                // "Ready, no malfunctions detected."
+                let _ = write_tx.send(b"\x1b[0n".to_vec());
+            }
+        }
+        tail = batch[batch.len().saturating_sub(3)..].to_vec();
+
         // ── (d) Build a snapshot and push it to the Dioxus layer ─────────────
         revision += 1;
         let snapshot = build_snapshot(parser.screen(), revision);
@@ -365,6 +401,26 @@ fn process_loop(
             break; // Dioxus component dropped the receiver (window closed)
         }
     }
+}
+
+// ── DSR query detection ───────────────────────────────────────────────────────
+
+/// Count Device Status Report queries in a raw output batch.
+///
+/// Returns `(cursor_position_reports, status_requests)` for `\x1b[6n` and
+/// `\x1b[5n` respectively. The caller should prepend the tail of the previous
+/// batch so sequences split across batches are still detected.
+fn count_dsr_queries(batch: &[u8]) -> (u32, u32) {
+    let mut cursor_reports = 0u32;
+    let mut status_requests = 0u32;
+    for w in batch.windows(4) {
+        match w {
+            b"\x1b[6n" => cursor_reports += 1,
+            b"\x1b[5n" => status_requests += 1,
+            _ => {}
+        }
+    }
+    (cursor_reports, status_requests)
 }
 
 // ── Snapshot builder ──────────────────────────────────────────────────────────
@@ -617,6 +673,33 @@ mod tests {
         let parser = PtyParser::new(10, 40, 0);
         let snap = build_snapshot(parser.screen(), 1);
         assert_eq!(snap.rows.len(), snap.lines as usize);
+    }
+
+    // ── DSR query detection ───────────────────────────────────────────────────
+
+    #[test]
+    fn count_dsr_queries_detects_cursor_report() {
+        assert_eq!(count_dsr_queries(b"abc\x1b[6ndef"), (1, 0));
+    }
+
+    #[test]
+    fn count_dsr_queries_detects_status_request() {
+        assert_eq!(count_dsr_queries(b"\x1b[5n"), (0, 1));
+    }
+
+    #[test]
+    fn count_dsr_queries_counts_multiple() {
+        assert_eq!(count_dsr_queries(b"\x1b[6n\x1b[6n\x1b[5n"), (2, 1));
+    }
+
+    #[test]
+    fn count_dsr_queries_ignores_similar_sequences() {
+        assert_eq!(count_dsr_queries(b"\x1b[6h\x1b[16n\x1b[m"), (0, 0));
+    }
+
+    #[test]
+    fn count_dsr_queries_empty_batch() {
+        assert_eq!(count_dsr_queries(b""), (0, 0));
     }
 
     // ── Cursor visibility ─────────────────────────────────────────────────────

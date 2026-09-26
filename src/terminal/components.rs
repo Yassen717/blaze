@@ -31,6 +31,9 @@ pub fn DesktopTerminal() -> Element {
 
         match PtySession::spawn(80, 24) {
             Ok((pty_session, mut update_rx)) => {
+                // Same-size resize on purpose: portable-pty enables
+                // PSEUDOCONSOLE_RESIZE_QUIRK, under which older inbox ConPTY
+                // withholds the first frame until a resize arrives.
                 let _ = pty_session.resize_tx.send((80, 24));
                 session.set(Some(pty_session));
 
