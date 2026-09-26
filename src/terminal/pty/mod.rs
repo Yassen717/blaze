@@ -373,13 +373,15 @@ fn process_loop(
 fn build_snapshot(screen: &vt100::Screen, revision: u64) -> ScreenSnapshot {
     let (rows, cols) = screen.size();
     let (cur_row, cur_col) = screen.cursor_position();
+    let cursor_visible = !screen.hide_cursor();
 
     ScreenSnapshot {
         rows: (0..rows)
-            .map(|r| build_row(screen, r, cols, cur_row, cur_col))
+            .map(|r| build_row(screen, r, cols, cur_row, cur_col, cursor_visible))
             .collect(),
         cursor_row: cur_row as usize,
         cursor_col: cur_col as usize,
+        cursor_visible,
         title: screen.title().to_string(),
         cols,
         lines: rows,
@@ -396,6 +398,7 @@ fn build_row(
     cols: u16,
     cur_row: u16,
     cur_col: u16,
+    cursor_visible: bool,
 ) -> ScreenRow {
     let mut runs = Vec::<StyledRun>::new();
     let mut text = String::new();
@@ -405,7 +408,7 @@ fn build_row(
     let mut current_is_cursor = false;
 
     for col in 0..cols {
-        let is_cursor_cell = row_idx == cur_row && col == cur_col;
+        let is_cursor_cell = cursor_visible && row_idx == cur_row && col == cur_col;
 
         let (ch, cell_style) = match screen.cell(row_idx, col) {
             Some(cell) => {
@@ -515,8 +518,13 @@ mod tests {
 
     // ── Shell resolution ──────────────────────────────────────────────────────
 
+    /// Serialises tests that mutate the shared `BLAZE_SHELL` env var —
+    /// parallel test threads otherwise race `set_var`/`remove_var`.
+    static SHELL_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     #[test]
     fn resolve_shell_respects_blaze_shell_env() {
+        let _g = SHELL_ENV_LOCK.lock().unwrap();
         std::env::set_var("BLAZE_SHELL", "my-custom-shell");
         assert_eq!(resolve_shell(), "my-custom-shell");
         std::env::remove_var("BLAZE_SHELL");
@@ -524,6 +532,7 @@ mod tests {
 
     #[test]
     fn resolve_shell_ignores_empty_blaze_shell() {
+        let _g = SHELL_ENV_LOCK.lock().unwrap();
         std::env::set_var("BLAZE_SHELL", "");
         let shell = resolve_shell();
         // Should fall through to the platform default, not return empty.
@@ -533,6 +542,7 @@ mod tests {
 
     #[test]
     fn resolve_shell_returns_non_empty_by_default() {
+        let _g = SHELL_ENV_LOCK.lock().unwrap();
         std::env::remove_var("BLAZE_SHELL");
         assert!(!resolve_shell().is_empty());
     }
@@ -607,6 +617,34 @@ mod tests {
         let parser = PtyParser::new(10, 40, 0);
         let snap = build_snapshot(parser.screen(), 1);
         assert_eq!(snap.rows.len(), snap.lines as usize);
+    }
+
+    // ── Cursor visibility ─────────────────────────────────────────────────────
+
+    #[test]
+    fn visible_cursor_produces_cursor_run() {
+        let mut parser = PtyParser::new(24, 80, 0);
+        parser.process(b"PS C:\\> \x1b[?25h");
+        let snap = build_snapshot(parser.screen(), 1);
+        assert!(snap.cursor_visible);
+        assert!(snap
+            .rows
+            .iter()
+            .flat_map(|r| r.runs.iter())
+            .any(|r| r.is_cursor));
+    }
+
+    #[test]
+    fn hidden_cursor_produces_no_cursor_run() {
+        let mut parser = PtyParser::new(24, 80, 0);
+        parser.process(b"PS C:\\> \x1b[?25l");
+        let snap = build_snapshot(parser.screen(), 1);
+        assert!(!snap.cursor_visible);
+        assert!(!snap
+            .rows
+            .iter()
+            .flat_map(|r| r.runs.iter())
+            .any(|r| r.is_cursor));
     }
 
     // ── PTY integration ───────────────────────────────────────────────────────

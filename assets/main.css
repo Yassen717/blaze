@@ -278,6 +278,10 @@ a {
        terminal; Blaze green is kept for the cursor accent. */
     color: #e6edf3;
     cursor: default;
+    /* Disable text selection — a stray ::selection highlight reads as a
+       phantom block next to the cursor. Real selection support is planned. */
+    -webkit-user-select: none;
+    user-select: none;
     /* Allow the div to receive keyboard focus so onkeydown fires. */
     outline: none;
 }
