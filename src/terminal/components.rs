@@ -7,11 +7,37 @@ use crate::terminal::pty::PtySession;
 #[cfg(not(feature = "desktop"))]
 use crate::terminal::commands::web::run_web_command;
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
-use crate::terminal::screen::ScreenSnapshot;
+use crate::terminal::screen::{display_title, ScreenSnapshot};
 #[cfg(not(feature = "desktop"))]
 use crate::terminal::state::{LineType, TerminalLine};
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 use crate::terminal::PtyScreen;
+
+/// Measures the character cell via `#pty-measure` and reports the
+/// `[cols, rows]` that fit inside `#terminal-output` whenever it resizes.
+#[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
+const FIT_SCRIPT: &str = r#"
+const host = document.getElementById('terminal-output');
+const probe = document.getElementById('pty-measure');
+if (host && probe) {
+    let last = '', timer = null;
+    const fit = () => {
+        const cell = probe.getBoundingClientRect();
+        const cs = getComputedStyle(host);
+        const w = host.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const h = host.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        if (cell.width <= 0 || cell.height <= 0) return;
+        const size = [Math.floor(w / (cell.width / 10)), Math.floor(h / cell.height)];
+        const key = size.join('x');
+        if (key !== last) { last = key; dioxus.send(size); }
+    };
+    new ResizeObserver(() => { clearTimeout(timer); timer = setTimeout(fit, 60); }).observe(host);
+    document.fonts.ready.then(fit);
+    fit();
+    host.focus();
+}
+await new Promise(() => {});
+"#;
 
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 #[component]
@@ -35,7 +61,18 @@ pub fn DesktopTerminal() -> Element {
                 // PSEUDOCONSOLE_RESIZE_QUIRK, under which older inbox ConPTY
                 // withholds the first frame until a resize arrives.
                 let _ = pty_session.resize_tx.send((80, 24));
+                let resize_tx = pty_session.resize_tx.clone();
                 session.set(Some(pty_session));
+
+                // Keep the PTY grid matched to the visible area of the window.
+                spawn(async move {
+                    let mut fit = document::eval(FIT_SCRIPT);
+                    while let Ok((cols, rows)) = fit.recv::<(u16, u16)>().await {
+                        if resize_tx.send((cols.max(20), rows.max(5))).is_err() {
+                            break;
+                        }
+                    }
+                });
 
                 let mut screen_sig = screen;
                 let mut title_sig = terminal_title;
@@ -67,31 +104,44 @@ pub fn DesktopTerminal() -> Element {
 
     let screen_signal: ReadSignal<ScreenSnapshot> = screen.into();
 
+    let title = display_title(&terminal_title());
+
     rsx! {
         div { class: "terminal-container terminal-fullscreen",
-            div { class: "terminal-header",
-                span { class: "terminal-title", "{terminal_title()}" }
-                div { class: "terminal-controls",
+            div {
+                class: "terminal-header",
+                ondoubleclick: move |_| dioxus::desktop::window().toggle_maximized(),
+                div { class: "terminal-brand",
+                    span { class: "brand-mark", "⚡" }
+                    span { class: "terminal-title", title: "{title}", "{title}" }
+                }
+                div {
+                    class: "terminal-controls",
+                    // Keep keyboard focus on the terminal when clicking buttons.
+                    onmousedown: move |e| e.prevent_default(),
                     button {
                         class: "win-btn win-btn-minimize",
-                        onclick: move |_| {
-                            dioxus::desktop::window().set_minimized(true);
-                        },
-                        "−"
+                        title: "Minimize",
+                        onclick: move |_| dioxus::desktop::window().set_minimized(true),
+                        svg { width: "10", height: "10", view_box: "0 0 10 10",
+                            path { d: "M0 5.5h10", stroke: "currentColor", stroke_width: "1" }
+                        }
                     }
                     button {
                         class: "win-btn win-btn-maximize",
-                        onclick: move |_| {
-                            dioxus::desktop::window().toggle_maximized();
-                        },
-                        "□"
+                        title: "Maximize",
+                        onclick: move |_| dioxus::desktop::window().toggle_maximized(),
+                        svg { width: "10", height: "10", view_box: "0 0 10 10",
+                            rect { x: "0.5", y: "0.5", width: "9", height: "9", fill: "none", stroke: "currentColor", stroke_width: "1" }
+                        }
                     }
                     button {
                         class: "win-btn win-btn-close",
-                        onclick: move |_| {
-                            dioxus::desktop::window().close();
-                        },
-                        "✕"
+                        title: "Close",
+                        onclick: move |_| dioxus::desktop::window().close(),
+                        svg { width: "10", height: "10", view_box: "0 0 10 10",
+                            path { d: "M0.5 0.5l9 9M9.5 0.5l-9 9", stroke: "currentColor", stroke_width: "1.1" }
+                        }
                     }
                 }
             }
@@ -105,6 +155,9 @@ pub fn DesktopTerminal() -> Element {
                 onclick: move |_| {
                     document::eval(r#"document.getElementById('terminal-output')?.focus()"#);
                 },
+
+                // Hidden probe used by FIT_SCRIPT to measure one character cell.
+                span { id: "pty-measure", class: "pty-measure", "WWWWWWWWWW" }
 
                 if let Some(err) = startup_error() {
                     div { class: "line-error", "{err}" }

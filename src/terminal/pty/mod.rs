@@ -528,10 +528,10 @@ fn cell_to_style(cell: &vt100::Cell, is_cursor: bool) -> CellStyle {
         if is_cursor {
             // Fall back to Blaze theme colours when the cell has no explicit colour.
             if bg.is_none() {
-                bg = Some(Rgb::new(93, 255, 154)); // #5dff9a — Blaze cursor green
+                bg = Some(Rgb::new(255, 138, 76)); // #ff8a4c — Blaze cursor accent
             }
             if fg.is_none() {
-                fg = Some(Rgb::new(5, 6, 7)); // terminal background
+                fg = Some(Rgb::new(11, 14, 19)); // terminal background
             }
         }
     }
@@ -612,10 +612,10 @@ mod tests {
 
     #[test]
     fn vt100_color_idx_maps_to_rgb() {
-        assert_eq!(vt100_color(vt100::Color::Idx(0)), Some(Rgb::new(0, 0, 0)));
+        assert_eq!(vt100_color(vt100::Color::Idx(0)), Some(xterm256_to_rgb(0)));
         assert_eq!(
-            vt100_color(vt100::Color::Idx(15)),
-            Some(Rgb::new(255, 255, 255))
+            vt100_color(vt100::Color::Idx(196)),
+            Some(Rgb::new(255, 0, 0))
         );
     }
 
