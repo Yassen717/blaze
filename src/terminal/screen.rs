@@ -30,28 +30,28 @@ impl Rgb {
 
 /// The standard xterm 256-colour palette, indexed 0-255.
 ///
-/// Indices 0-15   → system colours (terminal-theme-dependent; we use common defaults).
+/// Indices 0-15   → system colours (Blaze theme — softened for a dark background).
 /// Indices 16-231 → 6×6×6 colour cube.
 /// Indices 232-255 → greyscale ramp.
 pub fn xterm256_to_rgb(idx: u8) -> Rgb {
     match idx {
         // ── system colours (0-15) ────────────────────────────────────────────
-        0  => Rgb::new(0,   0,   0  ), // Black
-        1  => Rgb::new(128, 0,   0  ), // Maroon
-        2  => Rgb::new(0,   128, 0  ), // Green
-        3  => Rgb::new(128, 128, 0  ), // Olive
-        4  => Rgb::new(0,   0,   128), // Navy
-        5  => Rgb::new(128, 0,   128), // Purple
-        6  => Rgb::new(0,   128, 128), // Teal
-        7  => Rgb::new(192, 192, 192), // Silver
-        8  => Rgb::new(128, 128, 128), // Grey
-        9  => Rgb::new(255, 0,   0  ), // Red
-        10 => Rgb::new(0,   255, 0  ), // Lime
-        11 => Rgb::new(255, 255, 0  ), // Yellow
-        12 => Rgb::new(0,   0,   255), // Blue
-        13 => Rgb::new(255, 0,   255), // Fuchsia
-        14 => Rgb::new(0,   255, 255), // Aqua
-        15 => Rgb::new(255, 255, 255), // White
+        0  => Rgb::new(40,  44,  52 ), // Black
+        1  => Rgb::new(240, 98,  108), // Red
+        2  => Rgb::new(114, 214, 140), // Green
+        3  => Rgb::new(240, 198, 116), // Yellow
+        4  => Rgb::new(97,  175, 239), // Blue
+        5  => Rgb::new(198, 120, 221), // Magenta
+        6  => Rgb::new(86,  182, 194), // Cyan
+        7  => Rgb::new(200, 204, 212), // White
+        8  => Rgb::new(92,  99,  112), // Bright black
+        9  => Rgb::new(255, 123, 133), // Bright red
+        10 => Rgb::new(149, 230, 163), // Bright green
+        11 => Rgb::new(255, 215, 135), // Bright yellow
+        12 => Rgb::new(125, 196, 255), // Bright blue
+        13 => Rgb::new(220, 150, 240), // Bright magenta
+        14 => Rgb::new(110, 210, 222), // Bright cyan
+        15 => Rgb::new(240, 243, 246), // Bright white
         // ── 6×6×6 colour cube (16-231) ───────────────────────────────────────
         16..=231 => {
             let i = idx - 16;
@@ -105,36 +105,21 @@ impl Default for CellStyle {
 impl CellStyle {
     /// Build an inline CSS `style` attribute string for this cell style.
     ///
-    /// Returns an empty string when the style is default (avoids injecting
-    /// `style=""` onto every span).
+    /// Every property is always emitted, even at its default value. Dioxus
+    /// reuses `<span>` nodes between renders and, when updating `style`, keeps
+    /// any old inline property that the new value omits. Leaving out e.g.
+    /// `background-color` would let the cursor's highlight leak onto whatever
+    /// text later occupies the same span.
     pub fn to_inline_css(&self) -> String {
-        let mut parts: Vec<String> = Vec::new();
-
-        if let Some(fg) = &self.fg {
-            parts.push(format!("color:{}", fg.to_css()));
-        }
-        if let Some(bg) = &self.bg {
-            parts.push(format!("background-color:{}", bg.to_css()));
-        }
-        if self.bold {
-            parts.push("font-weight:bold".into());
-        }
-        if self.italic {
-            parts.push("font-style:italic".into());
-        }
-        if self.underline {
-            parts.push("text-decoration:underline".into());
-        }
-        if self.dim {
-            parts.push("opacity:0.5".into());
-        }
-        if self.blink {
-            // CSS animation is defined in main.css as `.pty-blink`.
-            // We add it via class rather than inline style; this flag is a
-            // hint to the renderer.
-        }
-
-        parts.join(";")
+        let fg = self.fg.as_ref().map_or_else(|| "inherit".into(), Rgb::to_css);
+        let bg = self.bg.as_ref().map_or_else(|| "transparent".into(), Rgb::to_css);
+        format!(
+            "color:{fg};background-color:{bg};font-weight:{};font-style:{};text-decoration:{};opacity:{}",
+            if self.bold { "bold" } else { "normal" },
+            if self.italic { "italic" } else { "normal" },
+            if self.underline { "underline" } else { "none" },
+            if self.dim { "0.5" } else { "1" },
+        )
     }
 
     /// Returns `true` when this style is entirely default (no inline CSS needed).
@@ -271,11 +256,55 @@ impl ScreenSnapshot {
     }
 }
 
+// ── Title ────────────────────────────────────────────────────────────────────
+
+/// Turn a raw OSC window title into something readable for the header.
+///
+/// Windows shells report their full executable path as the title
+/// (`C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe`); those are
+/// reduced to a friendly shell name. Any other title is returned trimmed.
+pub fn display_title(raw: &str) -> String {
+    let raw = raw.trim();
+    let (prefix, body) = match raw.strip_prefix("Administrator: ") {
+        Some(rest) => ("Administrator: ", rest),
+        None => ("", raw),
+    };
+    if !body.to_ascii_lowercase().ends_with(".exe") {
+        return if raw.is_empty() { "Blaze Terminal".into() } else { raw.into() };
+    }
+    let file = body.rsplit(['\\', '/']).next().unwrap_or(body);
+    let stem = &file[..file.len() - 4];
+    let name = match stem.to_ascii_lowercase().as_str() {
+        "powershell" => "Windows PowerShell".to_string(),
+        "pwsh" => "PowerShell".to_string(),
+        "cmd" => "Command Prompt".to_string(),
+        _ => stem.to_string(),
+    };
+    format!("{prefix}{name}")
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn display_title_shortens_executable_paths() {
+        assert_eq!(
+            display_title(r"C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe"),
+            "Windows PowerShell"
+        );
+        assert_eq!(display_title(r"C:\Program Files\PowerShell\7\pwsh.EXE"), "PowerShell");
+        assert_eq!(display_title(r"Administrator: C:\Windows\system32\cmd.exe"), "Administrator: Command Prompt");
+        assert_eq!(display_title("C:/tools/nu.exe"), "nu");
+    }
+
+    #[test]
+    fn display_title_keeps_regular_titles() {
+        assert_eq!(display_title("  vim — main.rs "), "vim — main.rs");
+        assert_eq!(display_title(""), "Blaze Terminal");
+    }
 
     #[test]
     fn default_snapshot_has_correct_dimensions() {
@@ -286,10 +315,22 @@ mod tests {
     }
 
     #[test]
-    fn cell_style_default_produces_empty_css() {
+    fn cell_style_default_resets_every_property() {
         let style = CellStyle::default();
-        assert!(style.to_inline_css().is_empty());
         assert!(style.is_default());
+        assert_eq!(
+            style.to_inline_css(),
+            "color:inherit;background-color:transparent;font-weight:normal;\
+             font-style:normal;text-decoration:none;opacity:1"
+        );
+    }
+
+    /// Regression: a span reused after holding the cursor must clear its
+    /// background, so the style string always carries `background-color`.
+    #[test]
+    fn fg_only_style_still_resets_background() {
+        let style = CellStyle { fg: Some(Rgb::new(1, 2, 3)), ..Default::default() };
+        assert!(style.to_inline_css().contains("background-color:transparent"));
     }
 
     #[test]
@@ -310,8 +351,8 @@ mod tests {
 
     #[test]
     fn xterm256_black_and_white() {
-        assert_eq!(xterm256_to_rgb(0),  Rgb::new(0, 0, 0));
-        assert_eq!(xterm256_to_rgb(15), Rgb::new(255, 255, 255));
+        assert_eq!(xterm256_to_rgb(0),  Rgb::new(40, 44, 52));
+        assert_eq!(xterm256_to_rgb(15), Rgb::new(240, 243, 246));
     }
 
     #[test]

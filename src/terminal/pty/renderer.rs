@@ -55,11 +55,18 @@ pub fn PtyScreen(snapshot: ReadSignal<ScreenSnapshot>) -> Element {
     rsx! {
         div { id: "pty-screen", class: "pty-screen",
             for (row_idx, row) in rows.into_iter().enumerate() {
-                div { key: "{row_idx}", class: "pty-row",
-                    { render_row(row) }
-                }
+                PtyRow { key: "{row_idx}", row }
             }
         }
+    }
+}
+
+/// One terminal line. As a component with `PartialEq` props, Dioxus skips
+/// re-rendering rows whose content did not change between snapshots.
+#[component]
+fn PtyRow(row: ScreenRow) -> Element {
+    rsx! {
+        div { class: "pty-row", { render_row(row) } }
     }
 }
 
