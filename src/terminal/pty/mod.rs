@@ -307,6 +307,11 @@ fn write_loop(mut writer: Box<dyn Write + Send>, rx: mpsc::Receiver<Vec<u8>>) {
 
 // ── Thread: process ───────────────────────────────────────────────────────────
 
+/// Quiet gap after which a burst of PTY output is considered complete.
+const BURST_GAP: Duration = Duration::from_millis(2);
+/// Upper bound on how long one burst is coalesced before a frame is emitted.
+const FRAME_BUDGET: Duration = Duration::from_millis(12);
+
 /// Parses PTY output, handles resize events, and emits [`PtyUpdate`]s.
 ///
 /// # Resize responsiveness
@@ -359,10 +364,14 @@ fn process_loop(
             Err(mpsc::RecvTimeoutError::Disconnected) => break, // read thread exited
         };
 
-        // Coalesce any additional bytes that arrived while we were unblocked.
+        // Coalesce output that arrives in a quick burst into a single frame.
+        // Shells emit command output in many small chunks; building and
+        // rendering a full snapshot per chunk floods the UI and makes it lag
+        // behind. Wait briefly for more bytes, capped so output still streams.
         let mut batch = first;
-        loop {
-            match raw_rx.try_recv() {
+        let burst_start = std::time::Instant::now();
+        while burst_start.elapsed() < FRAME_BUDGET {
+            match raw_rx.recv_timeout(BURST_GAP) {
                 Ok(more) => batch.extend(more),
                 Err(_) => break,
             }

@@ -77,7 +77,11 @@ pub fn DesktopTerminal() -> Element {
                 let mut screen_sig = screen;
                 let mut title_sig = terminal_title;
                 spawn(async move {
-                    while let Some(update) = update_rx.recv().await {
+                    while let Some(mut update) = update_rx.recv().await {
+                        // Render only the newest screen if several queued up.
+                        while let Ok(next) = update_rx.try_recv() {
+                            update = next;
+                        }
                         *screen_sig.write() = update.snapshot;
                         if !update.title.is_empty() {
                             *title_sig.write() = update.title;
