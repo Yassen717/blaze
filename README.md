@@ -115,7 +115,7 @@ curl -sSL https://dioxus.dev/install.sh | sh
 ```bash
 # Clone the repository
 git clone https://github.com/Yassen717/blaze.git
-cd blaze/app
+cd blaze
 
 # Run desktop application
 dx serve --platform desktop
