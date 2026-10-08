@@ -1,11 +1,11 @@
 use dioxus::prelude::*;
 
+#[cfg(not(feature = "desktop"))]
+use crate::terminal::commands::web::run_web_command;
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 use crate::terminal::pty::keys::key_to_bytes;
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 use crate::terminal::pty::PtySession;
-#[cfg(not(feature = "desktop"))]
-use crate::terminal::commands::web::run_web_command;
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
 use crate::terminal::screen::{display_title, ScreenSnapshot};
 #[cfg(not(feature = "desktop"))]

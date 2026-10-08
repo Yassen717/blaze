@@ -46,8 +46,8 @@ use dioxus::prelude::{Key, Modifiers};
 /// * dead keys / compose sequences,
 /// * any key combination without a defined terminal encoding.
 pub fn key_to_bytes(key: Key, mods: Modifiers) -> Option<Vec<u8>> {
-    let ctrl  = mods.contains(Modifiers::CONTROL);
-    let alt   = mods.contains(Modifiers::ALT);
+    let ctrl = mods.contains(Modifiers::CONTROL);
+    let alt = mods.contains(Modifiers::ALT);
 
     match key {
         // ── Modifier-only keys ────────────────────────────────────────────────
@@ -85,33 +85,33 @@ pub fn key_to_bytes(key: Key, mods: Modifiers) -> Option<Vec<u8>> {
         Key::Escape => Some(b"\x1b".to_vec()),
 
         // ── Arrow keys (CSI A–D) ──────────────────────────────────────────────
-        Key::ArrowUp    => Some(b"\x1b[A".to_vec()),
-        Key::ArrowDown  => Some(b"\x1b[B".to_vec()),
+        Key::ArrowUp => Some(b"\x1b[A".to_vec()),
+        Key::ArrowDown => Some(b"\x1b[B".to_vec()),
         Key::ArrowRight => Some(b"\x1b[C".to_vec()),
-        Key::ArrowLeft  => Some(b"\x1b[D".to_vec()),
+        Key::ArrowLeft => Some(b"\x1b[D".to_vec()),
 
         // ── Navigation keys ───────────────────────────────────────────────────
-        Key::Home     => Some(b"\x1b[H".to_vec()),
-        Key::End      => Some(b"\x1b[F".to_vec()),
-        Key::PageUp   => Some(b"\x1b[5~".to_vec()),
+        Key::Home => Some(b"\x1b[H".to_vec()),
+        Key::End => Some(b"\x1b[F".to_vec()),
+        Key::PageUp => Some(b"\x1b[5~".to_vec()),
         Key::PageDown => Some(b"\x1b[6~".to_vec()),
-        Key::Insert   => Some(b"\x1b[2~".to_vec()),
-        Key::Delete   => Some(b"\x1b[3~".to_vec()),
+        Key::Insert => Some(b"\x1b[2~".to_vec()),
+        Key::Delete => Some(b"\x1b[3~".to_vec()),
 
         // ── Function keys ─────────────────────────────────────────────────────
         //
         // F1–F4 use the older VT220 SS3 P–S sequences.
         // F5–F12 use the xterm CSI tilde sequences.
         // Note: there is no \x1b[16~ — F6 jumps from 15 to 17.
-        Key::F1  => Some(b"\x1bOP".to_vec()),
-        Key::F2  => Some(b"\x1bOQ".to_vec()),
-        Key::F3  => Some(b"\x1bOR".to_vec()),
-        Key::F4  => Some(b"\x1bOS".to_vec()),
-        Key::F5  => Some(b"\x1b[15~".to_vec()),
-        Key::F6  => Some(b"\x1b[17~".to_vec()),
-        Key::F7  => Some(b"\x1b[18~".to_vec()),
-        Key::F8  => Some(b"\x1b[19~".to_vec()),
-        Key::F9  => Some(b"\x1b[20~".to_vec()),
+        Key::F1 => Some(b"\x1bOP".to_vec()),
+        Key::F2 => Some(b"\x1bOQ".to_vec()),
+        Key::F3 => Some(b"\x1bOR".to_vec()),
+        Key::F4 => Some(b"\x1bOS".to_vec()),
+        Key::F5 => Some(b"\x1b[15~".to_vec()),
+        Key::F6 => Some(b"\x1b[17~".to_vec()),
+        Key::F7 => Some(b"\x1b[18~".to_vec()),
+        Key::F8 => Some(b"\x1b[19~".to_vec()),
+        Key::F9 => Some(b"\x1b[20~".to_vec()),
         Key::F10 => Some(b"\x1b[21~".to_vec()),
         Key::F11 => Some(b"\x1b[23~".to_vec()),
         Key::F12 => Some(b"\x1b[24~".to_vec()),
@@ -160,18 +160,18 @@ fn ctrl_char_bytes(s: &str, alt: bool) -> Option<Vec<u8>> {
             // Ctrl+@ and Ctrl+Space → NUL (0x00)
             '@' | ' ' | '2' => Some(0x00),
             // Ctrl+[ → ESC (0x1b)  — also achievable as plain Escape key
-            '[' | '3'       => Some(0x1b),
+            '[' | '3' => Some(0x1b),
             // Ctrl+\ → FS (0x1c)
-            '\\' | '4'      => Some(0x1c),
+            '\\' | '4' => Some(0x1c),
             // Ctrl+] → GS (0x1d)
-            ']' | '5'       => Some(0x1d),
+            ']' | '5' => Some(0x1d),
             // Ctrl+^ → RS (0x1e)
-            '^' | '6'       => Some(0x1e),
+            '^' | '6' => Some(0x1e),
             // Ctrl+_ → US (0x1f)
-            '_' | '7'       => Some(0x1f),
+            '_' | '7' => Some(0x1f),
             // Ctrl+8 → DEL (0x7f)
-            '8'             => Some(0x7f),
-            _               => None,
+            '8' => Some(0x7f),
+            _ => None,
         }
     };
 
@@ -220,19 +220,29 @@ pub fn paste_to_bytes(text: &str, bracketed_paste: bool) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dioxus::prelude::{Key, Modifiers};
     #[allow(unused_imports)]
     use super::*;
+    use dioxus::prelude::{Key, Modifiers};
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    fn no_mods() -> Modifiers { Modifiers::empty() }
-    fn ctrl()    -> Modifiers { Modifiers::CONTROL }
-    fn alt()     -> Modifiers { Modifiers::ALT }
-    fn ctrl_alt()-> Modifiers { Modifiers::CONTROL | Modifiers::ALT }
+    fn no_mods() -> Modifiers {
+        Modifiers::empty()
+    }
+    fn ctrl() -> Modifiers {
+        Modifiers::CONTROL
+    }
+    fn alt() -> Modifiers {
+        Modifiers::ALT
+    }
+    fn ctrl_alt() -> Modifiers {
+        Modifiers::CONTROL | Modifiers::ALT
+    }
 
     /// Build a `Key::Character` from a string slice.
-    fn k(s: &str) -> Key { Key::Character(s.into()) }
+    fn k(s: &str) -> Key {
+        Key::Character(s.into())
+    }
 
     // ── Editing keys ──────────────────────────────────────────────────────────
 
@@ -260,22 +270,34 @@ mod tests {
 
     #[test]
     fn arrow_up_encodes_to_csi_a() {
-        assert_eq!(key_to_bytes(Key::ArrowUp, no_mods()), Some(b"\x1b[A".to_vec()));
+        assert_eq!(
+            key_to_bytes(Key::ArrowUp, no_mods()),
+            Some(b"\x1b[A".to_vec())
+        );
     }
 
     #[test]
     fn arrow_down_encodes_to_csi_b() {
-        assert_eq!(key_to_bytes(Key::ArrowDown, no_mods()), Some(b"\x1b[B".to_vec()));
+        assert_eq!(
+            key_to_bytes(Key::ArrowDown, no_mods()),
+            Some(b"\x1b[B".to_vec())
+        );
     }
 
     #[test]
     fn arrow_right_encodes_to_csi_c() {
-        assert_eq!(key_to_bytes(Key::ArrowRight, no_mods()), Some(b"\x1b[C".to_vec()));
+        assert_eq!(
+            key_to_bytes(Key::ArrowRight, no_mods()),
+            Some(b"\x1b[C".to_vec())
+        );
     }
 
     #[test]
     fn arrow_left_encodes_to_csi_d() {
-        assert_eq!(key_to_bytes(Key::ArrowLeft, no_mods()), Some(b"\x1b[D".to_vec()));
+        assert_eq!(
+            key_to_bytes(Key::ArrowLeft, no_mods()),
+            Some(b"\x1b[D".to_vec())
+        );
     }
 
     // ── Navigation ────────────────────────────────────────────────────────────
@@ -292,22 +314,34 @@ mod tests {
 
     #[test]
     fn page_up_encodes_to_csi_5_tilde() {
-        assert_eq!(key_to_bytes(Key::PageUp, no_mods()), Some(b"\x1b[5~".to_vec()));
+        assert_eq!(
+            key_to_bytes(Key::PageUp, no_mods()),
+            Some(b"\x1b[5~".to_vec())
+        );
     }
 
     #[test]
     fn page_down_encodes_to_csi_6_tilde() {
-        assert_eq!(key_to_bytes(Key::PageDown, no_mods()), Some(b"\x1b[6~".to_vec()));
+        assert_eq!(
+            key_to_bytes(Key::PageDown, no_mods()),
+            Some(b"\x1b[6~".to_vec())
+        );
     }
 
     #[test]
     fn insert_encodes_to_csi_2_tilde() {
-        assert_eq!(key_to_bytes(Key::Insert, no_mods()), Some(b"\x1b[2~".to_vec()));
+        assert_eq!(
+            key_to_bytes(Key::Insert, no_mods()),
+            Some(b"\x1b[2~".to_vec())
+        );
     }
 
     #[test]
     fn delete_encodes_to_csi_3_tilde() {
-        assert_eq!(key_to_bytes(Key::Delete, no_mods()), Some(b"\x1b[3~".to_vec()));
+        assert_eq!(
+            key_to_bytes(Key::Delete, no_mods()),
+            Some(b"\x1b[3~".to_vec())
+        );
     }
 
     // ── Function keys ─────────────────────────────────────────────────────────
@@ -333,12 +367,21 @@ mod tests {
 
     #[test]
     fn f7_to_f12_use_csi_tilde_sequences() {
-        assert_eq!(key_to_bytes(Key::F7,  no_mods()), Some(b"\x1b[18~".to_vec()));
-        assert_eq!(key_to_bytes(Key::F8,  no_mods()), Some(b"\x1b[19~".to_vec()));
-        assert_eq!(key_to_bytes(Key::F9,  no_mods()), Some(b"\x1b[20~".to_vec()));
-        assert_eq!(key_to_bytes(Key::F10, no_mods()), Some(b"\x1b[21~".to_vec()));
-        assert_eq!(key_to_bytes(Key::F11, no_mods()), Some(b"\x1b[23~".to_vec()));
-        assert_eq!(key_to_bytes(Key::F12, no_mods()), Some(b"\x1b[24~".to_vec()));
+        assert_eq!(key_to_bytes(Key::F7, no_mods()), Some(b"\x1b[18~".to_vec()));
+        assert_eq!(key_to_bytes(Key::F8, no_mods()), Some(b"\x1b[19~".to_vec()));
+        assert_eq!(key_to_bytes(Key::F9, no_mods()), Some(b"\x1b[20~".to_vec()));
+        assert_eq!(
+            key_to_bytes(Key::F10, no_mods()),
+            Some(b"\x1b[21~".to_vec())
+        );
+        assert_eq!(
+            key_to_bytes(Key::F11, no_mods()),
+            Some(b"\x1b[23~".to_vec())
+        );
+        assert_eq!(
+            key_to_bytes(Key::F12, no_mods()),
+            Some(b"\x1b[24~".to_vec())
+        );
     }
 
     // ── Printable characters ──────────────────────────────────────────────────
@@ -482,12 +525,12 @@ mod tests {
 
     #[test]
     fn modifier_only_keys_return_none() {
-        assert_eq!(key_to_bytes(Key::Control,    no_mods()), None);
-        assert_eq!(key_to_bytes(Key::Alt,        no_mods()), None);
-        assert_eq!(key_to_bytes(Key::Shift,      no_mods()), None);
-        assert_eq!(key_to_bytes(Key::Meta,       no_mods()), None);
-        assert_eq!(key_to_bytes(Key::CapsLock,   no_mods()), None);
-        assert_eq!(key_to_bytes(Key::NumLock,    no_mods()), None);
+        assert_eq!(key_to_bytes(Key::Control, no_mods()), None);
+        assert_eq!(key_to_bytes(Key::Alt, no_mods()), None);
+        assert_eq!(key_to_bytes(Key::Shift, no_mods()), None);
+        assert_eq!(key_to_bytes(Key::Meta, no_mods()), None);
+        assert_eq!(key_to_bytes(Key::CapsLock, no_mods()), None);
+        assert_eq!(key_to_bytes(Key::NumLock, no_mods()), None);
         assert_eq!(key_to_bytes(Key::ScrollLock, no_mods()), None);
     }
 
@@ -511,18 +554,21 @@ mod tests {
     #[test]
     fn paste_with_bracketed_mode_wraps_in_markers() {
         let out = paste_to_bytes("hello", true);
-        assert_eq!(&out[..6],        b"\x1b[200~");
-        assert_eq!(&out[6..11],      b"hello");
-        assert_eq!(&out[11..],       b"\x1b[201~");
+        assert_eq!(&out[..6], b"\x1b[200~");
+        assert_eq!(&out[6..11], b"hello");
+        assert_eq!(&out[11..], b"\x1b[201~");
     }
 
     #[test]
     fn paste_multiline_bracketed_preserves_newlines() {
         let text = "line1\nline2\nline3";
-        let out  = paste_to_bytes(text, true);
+        let out = paste_to_bytes(text, true);
         let inner = &out[6..out.len() - 6];
-        assert_eq!(inner, text.as_bytes(),
-            "multiline content must be preserved verbatim inside markers");
+        assert_eq!(
+            inner,
+            text.as_bytes(),
+            "multiline content must be preserved verbatim inside markers"
+        );
     }
 
     #[test]
@@ -538,21 +584,21 @@ mod tests {
     #[test]
     fn paste_unicode_is_encoded_as_utf8() {
         let text = "héllo wörld";
-        let out  = paste_to_bytes(text, false);
+        let out = paste_to_bytes(text, false);
         assert_eq!(out, text.as_bytes());
     }
 
     #[test]
     fn paste_capacity_hint_is_correct_without_brackets() {
         let text = "abc";
-        let out  = paste_to_bytes(text, false);
+        let out = paste_to_bytes(text, false);
         assert_eq!(out.len(), 3);
     }
 
     #[test]
     fn paste_capacity_hint_is_correct_with_brackets() {
         let text = "abc"; // 3 bytes + 6 + 6 = 15
-        let out  = paste_to_bytes(text, true);
+        let out = paste_to_bytes(text, true);
         assert_eq!(out.len(), 15);
     }
 }

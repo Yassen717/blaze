@@ -1,7 +1,8 @@
 use dioxus::prelude::*;
 
 const RELEASE_URL: &str = "https://github.com/Yassen717/blaze/releases/tag/v0.2.1";
-const WINDOWS_ASSET_URL: &str = "https://github.com/Yassen717/blaze/releases/download/v0.2.1/blaze_0.2.1_x64_en-US.msi";
+const WINDOWS_ASSET_URL: &str =
+    "https://github.com/Yassen717/blaze/releases/download/v0.2.1/blaze_0.2.1_x64_en-US.msi";
 
 #[component]
 pub fn DownloadPage() -> Element {

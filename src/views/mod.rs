@@ -2,13 +2,13 @@
 use dioxus::prelude::*;
 
 #[cfg(not(feature = "desktop"))]
-pub mod home;
-#[cfg(not(feature = "desktop"))]
 pub mod commands;
 #[cfg(not(feature = "desktop"))]
 pub mod demo;
 #[cfg(not(feature = "desktop"))]
 pub mod download;
+#[cfg(not(feature = "desktop"))]
+pub mod home;
 #[cfg(not(feature = "desktop"))]
 pub mod not_found;
 

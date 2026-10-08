@@ -26,8 +26,8 @@
 //! 50 ms `recv_timeout`).
 
 use std::io::{Read, Write};
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
@@ -36,7 +36,7 @@ pub mod keys;
 pub mod renderer;
 
 use crate::terminal::screen::{
-    CellStyle, Rgb, ScreenRow, ScreenSnapshot, StyledRun, xterm256_to_rgb,
+    xterm256_to_rgb, CellStyle, Rgb, ScreenRow, ScreenSnapshot, StyledRun,
 };
 
 // ── Public error type ─────────────────────────────────────────────────────────
@@ -181,8 +181,7 @@ impl PtySession {
         //             from the process thread.
         let reader = pair.master.try_clone_reader()?;
         let writer = pair.master.take_writer()?;
-        let master: Arc<Mutex<Box<dyn MasterPty + Send>>> =
-            Arc::new(Mutex::new(pair.master));
+        let master: Arc<Mutex<Box<dyn MasterPty + Send>>> = Arc::new(Mutex::new(pair.master));
 
         // ── 4. Channels ───────────────────────────────────────────────────────
 
@@ -236,7 +235,13 @@ impl PtySession {
                 let _ = child.wait();
             })?;
 
-        Ok((PtySession { write_tx, resize_tx }, update_rx))
+        Ok((
+            PtySession {
+                write_tx,
+                resize_tx,
+            },
+            update_rx,
+        ))
     }
 }
 
@@ -390,9 +395,8 @@ fn process_loop(
             let (cur_row, cur_col) = parser.screen().cursor_position();
             for _ in 0..cursor_reports {
                 // CPR — 1-based row;column.
-                let _ = write_tx.send(
-                    format!("\x1b[{};{}R", cur_row + 1, cur_col + 1).into_bytes(),
-                );
+                let _ =
+                    write_tx.send(format!("\x1b[{};{}R", cur_row + 1, cur_col + 1).into_bytes());
             }
             for _ in 0..status_requests {
                 // "Ready, no malfunctions detected."
@@ -480,7 +484,11 @@ fn build_row(
                 let s = cell.contents();
                 // Wide-character continuation cells have empty contents; treat
                 // them as a space to preserve column alignment.
-                let ch = if s.is_empty() { " ".to_string() } else { s.to_string() };
+                let ch = if s.is_empty() {
+                    " ".to_string()
+                } else {
+                    s.to_string()
+                };
                 (ch, cell_to_style(cell, is_cursor_cell))
             }
             None => (" ".to_string(), CellStyle::default()),
@@ -749,8 +757,7 @@ mod tests {
     /// update arrives.
     #[test]
     fn pty_session_spawns_and_produces_output() {
-        let (session, mut rx) =
-            PtySession::spawn(80, 24).expect("PTY should spawn without error");
+        let (session, mut rx) = PtySession::spawn(80, 24).expect("PTY should spawn without error");
 
         // Send a command that produces output on every supported shell.
         let cmd: Vec<u8> = if cfg!(target_os = "windows") {
@@ -780,7 +787,10 @@ mod tests {
             }
         }
 
-        assert!(received, "expected at least one PtyUpdate within {timeout:?}");
+        assert!(
+            received,
+            "expected at least one PtyUpdate within {timeout:?}"
+        );
     }
 
     /// Sending multiple rapid resize events must not panic or deadlock.
