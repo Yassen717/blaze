@@ -103,7 +103,7 @@ Project packaging is configured to emit release artifacts under:
 ### Prerequisites
 
 - [Rust](https://rustup.rs/) (latest stable)
-- [Dioxus CLI](https://dioxuslabs.com/learn/0.7/getting_started/installation)
+- [Dioxus CLI](https://dioxuslabs.com/learn/0.7/getting_started/#install-the-dioxus-cli)
 
 ```bash
 # Install Dioxus CLI
@@ -176,7 +176,7 @@ The web build keeps a simulated command set for showcase purposes. Use
 ## 🏗️ Architecture
 
 ```
-blaze-terminal/
+blaze/
 ├── 📁 assets/              # Static assets (CSS, images, icons)
 │   ├── main.css           # Main stylesheet
 │   ├── tailwind.css       # Tailwind CSS file
@@ -202,7 +202,9 @@ blaze-terminal/
 │       ├── mod.rs         # Route definitions
 │       ├── home.rs        # Landing page
 │       ├── commands.rs    # Command reference
-│       └── demo.rs        # Interactive demo
+│       ├── demo.rs        # Interactive demo
+│       ├── download.rs    # Download page
+│       └── not_found.rs   # 404 fallback page
 ├── 📄 Cargo.toml          # Rust dependencies
 ├── 📄 Dioxus.toml         # Dioxus configuration  
 └── 📄 README.md           # Project documentation
