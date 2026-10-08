@@ -36,16 +36,16 @@ impl Rgb {
 pub fn xterm256_to_rgb(idx: u8) -> Rgb {
     match idx {
         // ── system colours (0-15) ────────────────────────────────────────────
-        0  => Rgb::new(40,  44,  52 ), // Black
-        1  => Rgb::new(240, 98,  108), // Red
-        2  => Rgb::new(114, 214, 140), // Green
-        3  => Rgb::new(240, 198, 116), // Yellow
-        4  => Rgb::new(97,  175, 239), // Blue
-        5  => Rgb::new(198, 120, 221), // Magenta
-        6  => Rgb::new(86,  182, 194), // Cyan
-        7  => Rgb::new(200, 204, 212), // White
-        8  => Rgb::new(92,  99,  112), // Bright black
-        9  => Rgb::new(255, 123, 133), // Bright red
+        0 => Rgb::new(40, 44, 52),     // Black
+        1 => Rgb::new(240, 98, 108),   // Red
+        2 => Rgb::new(114, 214, 140),  // Green
+        3 => Rgb::new(240, 198, 116),  // Yellow
+        4 => Rgb::new(97, 175, 239),   // Blue
+        5 => Rgb::new(198, 120, 221),  // Magenta
+        6 => Rgb::new(86, 182, 194),   // Cyan
+        7 => Rgb::new(200, 204, 212),  // White
+        8 => Rgb::new(92, 99, 112),    // Bright black
+        9 => Rgb::new(255, 123, 133),  // Bright red
         10 => Rgb::new(149, 230, 163), // Bright green
         11 => Rgb::new(255, 215, 135), // Bright yellow
         12 => Rgb::new(125, 196, 255), // Bright blue
@@ -77,27 +77,27 @@ pub fn xterm256_to_rgb(idx: u8) -> Rgb {
 /// from the `.pty-screen` CSS rule rather than applying an inline colour).
 #[derive(Clone, Debug, PartialEq)]
 pub struct CellStyle {
-    pub fg:        Option<Rgb>,
-    pub bg:        Option<Rgb>,
-    pub bold:      bool,
-    pub italic:    bool,
+    pub fg: Option<Rgb>,
+    pub bg: Option<Rgb>,
+    pub bold: bool,
+    pub italic: bool,
     pub underline: bool,
-    pub dim:       bool,
-    pub blink:     bool,
-    pub reverse:   bool,
+    pub dim: bool,
+    pub blink: bool,
+    pub reverse: bool,
 }
 
 impl Default for CellStyle {
     fn default() -> Self {
         Self {
-            fg:        None,
-            bg:        None,
-            bold:      false,
-            italic:    false,
+            fg: None,
+            bg: None,
+            bold: false,
+            italic: false,
             underline: false,
-            dim:       false,
-            blink:     false,
-            reverse:   false,
+            dim: false,
+            blink: false,
+            reverse: false,
         }
     }
 }
@@ -111,8 +111,14 @@ impl CellStyle {
     /// `background-color` would let the cursor's highlight leak onto whatever
     /// text later occupies the same span.
     pub fn to_inline_css(&self) -> String {
-        let fg = self.fg.as_ref().map_or_else(|| "inherit".into(), Rgb::to_css);
-        let bg = self.bg.as_ref().map_or_else(|| "transparent".into(), Rgb::to_css);
+        let fg = self
+            .fg
+            .as_ref()
+            .map_or_else(|| "inherit".into(), Rgb::to_css);
+        let bg = self
+            .bg
+            .as_ref()
+            .map_or_else(|| "transparent".into(), Rgb::to_css);
         format!(
             "color:{fg};background-color:{bg};font-weight:{};font-style:{};text-decoration:{};opacity:{}",
             if self.bold { "bold" } else { "normal" },
@@ -138,7 +144,7 @@ impl CellStyle {
 /// `<span>` to minimise DOM node count.
 #[derive(Clone, Debug, PartialEq)]
 pub struct StyledRun {
-    pub text:  String,
+    pub text: String,
     pub style: CellStyle,
     /// Whether this run contains the terminal cursor.
     ///
@@ -218,15 +224,13 @@ pub struct ScreenSnapshot {
 
 impl Default for ScreenSnapshot {
     fn default() -> Self {
-        let cols:  u16 = 80;
+        let cols: u16 = 80;
         let lines: u16 = 24;
         Self {
-            rows: (0..lines)
-                .map(|_| ScreenRow { runs: Vec::new() })
-                .collect(),
+            rows: (0..lines).map(|_| ScreenRow { runs: Vec::new() }).collect(),
             cursor_row: 0,
             cursor_col: 0,
-            title:    "⚡ Blaze Terminal".to_string(),
+            title: "⚡ Blaze Terminal".to_string(),
             cols,
             lines,
             revision: 0,
@@ -270,7 +274,11 @@ pub fn display_title(raw: &str) -> String {
         None => ("", raw),
     };
     if !body.to_ascii_lowercase().ends_with(".exe") {
-        return if raw.is_empty() { "Blaze Terminal".into() } else { raw.into() };
+        return if raw.is_empty() {
+            "Blaze Terminal".into()
+        } else {
+            raw.into()
+        };
     }
     let file = body.rsplit(['\\', '/']).next().unwrap_or(body);
     let stem = &file[..file.len() - 4];
@@ -295,8 +303,14 @@ mod tests {
             display_title(r"C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe"),
             "Windows PowerShell"
         );
-        assert_eq!(display_title(r"C:\Program Files\PowerShell\7\pwsh.EXE"), "PowerShell");
-        assert_eq!(display_title(r"Administrator: C:\Windows\system32\cmd.exe"), "Administrator: Command Prompt");
+        assert_eq!(
+            display_title(r"C:\Program Files\PowerShell\7\pwsh.EXE"),
+            "PowerShell"
+        );
+        assert_eq!(
+            display_title(r"Administrator: C:\Windows\system32\cmd.exe"),
+            "Administrator: Command Prompt"
+        );
         assert_eq!(display_title("C:/tools/nu.exe"), "nu");
     }
 
@@ -329,8 +343,13 @@ mod tests {
     /// background, so the style string always carries `background-color`.
     #[test]
     fn fg_only_style_still_resets_background() {
-        let style = CellStyle { fg: Some(Rgb::new(1, 2, 3)), ..Default::default() };
-        assert!(style.to_inline_css().contains("background-color:transparent"));
+        let style = CellStyle {
+            fg: Some(Rgb::new(1, 2, 3)),
+            ..Default::default()
+        };
+        assert!(style
+            .to_inline_css()
+            .contains("background-color:transparent"));
     }
 
     #[test]
@@ -345,13 +364,16 @@ mod tests {
 
     #[test]
     fn cell_style_bold_appears_in_css() {
-        let style = CellStyle { bold: true, ..Default::default() };
+        let style = CellStyle {
+            bold: true,
+            ..Default::default()
+        };
         assert!(style.to_inline_css().contains("font-weight:bold"));
     }
 
     #[test]
     fn xterm256_black_and_white() {
-        assert_eq!(xterm256_to_rgb(0),  Rgb::new(40, 44, 52));
+        assert_eq!(xterm256_to_rgb(0), Rgb::new(40, 44, 52));
         assert_eq!(xterm256_to_rgb(15), Rgb::new(240, 243, 246));
     }
 
@@ -381,8 +403,8 @@ mod tests {
 
         let spaces = ScreenRow {
             runs: vec![StyledRun {
-                text:     "   ".to_string(),
-                style:    CellStyle::default(),
+                text: "   ".to_string(),
+                style: CellStyle::default(),
                 is_cursor: false,
             }],
         };
@@ -390,8 +412,8 @@ mod tests {
 
         let text = ScreenRow {
             runs: vec![StyledRun {
-                text:     "hello".to_string(),
-                style:    CellStyle::default(),
+                text: "hello".to_string(),
+                style: CellStyle::default(),
                 is_cursor: false,
             }],
         };

@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
-use crate::terminal::WebTerminalDemo;
 use crate::components::FeatureCard;
+use crate::terminal::WebTerminalDemo;
 use crate::views::Route;
 
 #[component]

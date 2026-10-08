@@ -321,7 +321,10 @@ pub fn run_web_command(cmd: &str, demo_dir: &str, mut lines: Signal<Vec<Terminal
             push_line_trim(
                 lines,
                 TerminalLine {
-                    content: format!("'{}': command not recognized. Type 'help' for commands.", cmd),
+                    content: format!(
+                        "'{}': command not recognized. Type 'help' for commands.",
+                        cmd
+                    ),
                     line_type: LineType::Error,
                 },
             );

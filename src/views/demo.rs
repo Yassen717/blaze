@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
-use crate::terminal::WebTerminalDemo;
 use crate::components::CmdCard;
+use crate::terminal::WebTerminalDemo;
 
 #[component]
 pub fn DemoPage() -> Element {

@@ -36,7 +36,11 @@ fn desktop_resource_dir() -> std::path::PathBuf {
         .unwrap_or_default()
 }
 
-#[cfg(all(feature = "desktop", not(target_arch = "wasm32"), target_os = "windows"))]
+#[cfg(all(
+    feature = "desktop",
+    not(target_arch = "wasm32"),
+    target_os = "windows"
+))]
 fn windows_data_dir() -> std::path::PathBuf {
     std::env::var_os("LOCALAPPDATA")
         .map(std::path::PathBuf::from)
@@ -60,7 +64,6 @@ compile_error!(
     "The 'desktop' feature cannot be built for wasm32. Use 'dx build --platform web' or 'cargo build --no-default-features --features web --target wasm32-unknown-unknown'."
 );
 
-
 // ======================== Main ========================
 
 #[cfg(all(feature = "desktop", not(target_arch = "wasm32")))]
@@ -81,7 +84,7 @@ fn main() {
                 .with_decorations(false)
                 .with_inner_size(LogicalSize::new(1100.0, 700.0))
                 .with_min_inner_size(LogicalSize::new(600.0, 400.0))
-                .with_window_icon(icon)
+                .with_window_icon(icon),
         )
         .with_resource_directory(desktop_resource_dir())
         .with_background_color((5, 6, 7, 255))

@@ -98,7 +98,7 @@ fn render_row(row: ScreenRow) -> Element {
 /// * When both would be empty (default, non-cursor run) the span is still
 ///   emitted — Dioxus diffs it cheaply and it keeps the tree shape stable.
 fn render_run(run_idx: usize, run: StyledRun) -> Element {
-    let css   = run.style.to_inline_css();
+    let css = run.style.to_inline_css();
     let class = run_class(run.is_cursor, run.style.blink);
 
     rsx! {
@@ -124,9 +124,9 @@ fn render_run(run_idx: usize, run: StyledRun) -> Element {
 #[inline]
 pub fn run_class(is_cursor: bool, blink: bool) -> &'static str {
     match (is_cursor, blink) {
-        (true,  true)  => "pty-cursor pty-blink",
-        (true,  false) => "pty-cursor",
-        (false, true)  => "pty-blink",
+        (true, true) => "pty-cursor pty-blink",
+        (true, false) => "pty-cursor",
+        (false, true) => "pty-blink",
         (false, false) => "",
     }
 }
